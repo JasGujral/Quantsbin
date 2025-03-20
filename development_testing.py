@@ -128,6 +128,16 @@ stg_gamma.show()
 # print(eqOption_BSM_test_pricer.risk_parameters_num())
 # print(eqOption_BSM_test_pricer.risk_parameters())
 
+# #
+# """EqOption using Trinomial"""
+# eqOption_BSM_test = qbdp.EqOption(option_type='Call', strike=100, expiry_date='20180630', expiry_type='American')
+# eqOption_BSM_test_pricer = eqOption_BSM_test.engine(model="Trinomial", spot0=110, pricing_date='20180531', volatility=.25,
+#                                             rf_rate=.05, div_list=div_list, yield_div=0.01, seed=12)
+#
+# print(eqOption_BSM_test_pricer.valuation())
+# print(eqOption_BSM_test_pricer.risk_parameters_num())
+# print(eqOption_BSM_test_pricer.risk_parameters())
+
 # """FutOption using Binomial"""
 # eqOption_BSM_test = qbdp.FutOption(option_type='Call', strike=100, expiry_date='20180630', expiry_type='American')
 # eqOption_BSM_test_pricer = eqOption_BSM_test.engine(model="Binomial", fwd0=110, pricing_date='20180531', volatility=.25,

@@ -24,7 +24,7 @@ class PricingModel(Enum):
     MC_GBM = "MC_GBM"
     MC_GBM_LSM = "MC_GBM_LSM"
     BINOMIAL = "Binomial"
-
+    TRINOMIAL = "Trinomial"
 
 class UnderlyingParameters(Enum):
     SPOT = "spot0"
@@ -72,17 +72,17 @@ class DivType(Enum):
 
 OBJECT_MODEL = {
     UdlType.STOCK.value: {ExpiryType.EUROPEAN.value: [PricingModel.BLACKSCHOLESMERTON.value, PricingModel.MC_GBM.value
-                          , PricingModel.BINOMIAL.value],
-                          ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
+                          , PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value],
+                          ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value]}
     , UdlType.FUTURES.value: {ExpiryType.EUROPEAN.value: [PricingModel.BLACK76.value, PricingModel.MC_GBM.value
-                              , PricingModel.BINOMIAL.value],
-                              ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
+                              , PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value],
+                              ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value]}
     , UdlType.FX.value:  {ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value
-                          , PricingModel.BINOMIAL.value],
-                          ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
+                          , PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value],
+                          ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value]}
     , UdlType.COMMODITY.value: {ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value
-                                , PricingModel.BINOMIAL.value],
-                                ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
+                                , PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value],
+                                ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value, PricingModel.TRINOMIAL.value]}
     }
 
 DEFAULT_MODEL = {
@@ -115,5 +115,6 @@ MODEL_MAPPER = {
     PricingModel.BLACK76.value: pm.B76,
     PricingModel.GK.value: pm.GK,
     PricingModel.MC_GBM.value: pm.MonteCarloGBM,
-    PricingModel.BINOMIAL.value: pm.BinomialModel
+    PricingModel.BINOMIAL.value: pm.BinomialModel,
+    PricingModel.TRINOMIAL.value: pm.TrinomialModel
     }

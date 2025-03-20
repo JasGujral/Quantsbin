@@ -3,6 +3,9 @@
 
 """
 
+# ExtraLine1
+# ExtraLine2
+# ExtraLine3
 from abc import ABCMeta, abstractmethod
 from datetime import datetime as dt
 from math import log, sqrt
@@ -466,6 +469,109 @@ class BinomialModel(Model):
             else:
                 _pv = ((self.up_prob*self.node_value(step_no+1, no_up+1)) +
                        ((1-self.up_prob)*self.node_value(step_no+1, no_up)))*self.step_discount_fact
+                _node_value = self.node_value_store(_pv,_intrinsic_value)
+                self.cache_node[cache_node_key] = _node_value
+                return self.cache_node[cache_node_key]
+
+    def valuation(self):
+        return self.node_value(0, 0)
+
+    def risk_parameters(self):
+        pass
+
+class TrinomialModel(Model):
+    """
+    This is the generalised Trinomial model used for valuation calculation for both European and American type
+        Args required:
+        instrument = Instrument parameters mapped from instrument module
+        spot0 = (Float) e.g. 110.0
+        rf_rate = (Float < 1) e.g. 0.2
+        cnv_yield = (Float < 1) e.g. 0.3
+        cost_yield = (Float < 1) e.g. 0.2
+        volatility = (Float < 1) e.g. 0.25
+        pricing_date = (Date in string format "YYYYMMDD") e.g. 10 Dec 2018 as "20181210"
+            no_of_steps = (Integer). Number of steps (nodes) for the premium calculation e.g. 100
+        div_list = (List). list of tuples with Ex-Dates and Dividend amounts. e.g. [('20180625',0.2),('20180727',0.6)]
+
+    """
+
+    def __init__(self, instrument, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0,
+                 volatility=None, pricing_date=None, no_of_steps=None, div_list=None, **kwargs):
+        self.instrument = instrument
+        self.spot0 = spot0 or 0.0001
+        self.rf_rate = rf_rate or 0
+        self.cnv_yield = cnv_yield or 0
+        self.cost_yield = cost_yield or 0
+        self.volatility = volatility or 0.10
+        self._pricing_date = dt.strptime(pricing_date, '%Y%m%d')
+        self.no_of_steps = no_of_steps or 100
+        self.div_list = div_list
+        self.cache_node = {}
+
+    @property
+    def drift(self):
+        return self.rf_rate + self.cost_yield - self._cnv_yield
+
+    @property
+    def div_processed(self):
+        return dividend_processor(self.div_list, self._pricing_date, self.instrument.expiry_date)
+
+    @property
+    def spot_update(self):
+        return self.spot0 - pv_div(self.div_processed, 0, self.rf_rate)
+
+    @property
+    def t_delta(self):
+        return self.maturity/self.no_of_steps
+
+    @property
+    def up_mult(self):
+        return e**(self.volatility*((2 * self.t_delta) ** 0.5))
+
+    @property
+    def up_prob(self):
+        return (1/6 + (self.drift - 0.5 * self.volatility**2 ) * (self.t_delta/(12*self.volatility**2))**0.5 )
+        
+    @property
+    def dn_prob(self):
+        return (1/6 - (self.drift - 0.5 * self.volatility**2 ) * (self.t_delta/(12*self.volatility**2))**0.5 )
+
+    @property
+    def md_prob(self):
+        return 2/3
+
+    @property
+    def step_discount_fact(self):
+        return e**(-1*self.rf_rate * self.t_delta)
+
+    def node_value_store(self, pv, intrinsic_value):
+        if self.instrument.expiry_type == ExpiryType.AMERICAN.value:
+            return max(pv, intrinsic_value)
+        else:
+            return pv
+
+    def intrinsic_value(self, _spot):
+        return max(self.option_flag * (_spot - self.instrument.strike), 0.0)
+
+    def calc_spot(self, step_no, no_up):
+        return self.spot_update * (self.up_mult**(1*no_up - 0*step_no)) + \
+               pv_div(self.div_processed, self.t_delta * step_no, self.rf_rate)
+
+    def node_value(self, step_no, no_up):
+        cache_node_key = (step_no, no_up)
+        if cache_node_key in self.cache_node:
+            return self.cache_node[cache_node_key]
+        else:
+            _spot = self.calc_spot(step_no, no_up)
+            _intrinsic_value = self.intrinsic_value(_spot)
+
+            if step_no >= self.no_of_steps:
+                return _intrinsic_value
+            else:
+                _pv = ((self.up_prob*self.node_value(step_no+1, no_up+1)) +
+                       (self.md_prob*self.node_value(step_no+1, no_up)) +
+                       (self.dn_prob*self.node_value(step_no+1, no_up-1))
+                       )*self.step_discount_fact
                 _node_value = self.node_value_store(_pv,_intrinsic_value)
                 self.cache_node[cache_node_key] = _node_value
                 return self.cache_node[cache_node_key]
