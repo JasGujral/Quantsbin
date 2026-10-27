@@ -71,7 +71,7 @@ test_plot.show()
 # option_val = qbdp.Plotting(OPTION1_Pricer, "valuation", x_axis_range=[0, 200]).line_plot()
 # option_val.show()
 
-abc = qbdp.StdStrategies(name="bull_call", expiry_date="20180630", expiry_type=None, low_strike=100, spread=10)
+abc = qbdp.StdStrategies(name="bull_call", expiry_date="20180630", expiry_type=None, low_strike=100, strike_spread=10)
 abc_engine = abc.engine(model="BSM", spot0=100, pricing_date='20180531', volatility=.25,
                                  rf_rate=.05, pv_div=0.0, yield_div=0.0, seed=12)
 
