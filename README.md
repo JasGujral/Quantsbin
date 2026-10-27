@@ -1,8 +1,10 @@
-[![PyPi version](https://img.shields.io/pypi/v/quantsbin.svg?maxAge=60)](https://pypi.python.org/pypi/pandas-montecarlo) [![PyPi Status](https://img.shields.io/pypi/status/quantsbin.svg?maxAge=60)](https://pypi.python.org/pypi/quantsbin) [![Github Stars](https://img.shields.io/github/stars/quantsbin/Quantsbin.svg?style=social&label=Star&maxAge=60)](https://github.com/quantsbin/Quantsbin) [![Twitter follows](https://img.shields.io/twitter/follow/quantsbin.svg?style=social&label=Follow%20Me&maxAge=60)](https://twitter.com/quantsbin) 
+[![PyPI version](https://img.shields.io/pypi/v/quantsbin.svg?maxAge=60)](https://pypi.org/project/quantsbin/) [![PyPi Status](https://img.shields.io/pypi/status/quantsbin.svg?maxAge=60)](https://pypi.org/project/quantsbin/) [![Github Stars](https://img.shields.io/github/stars/JasGujral/Quantsbin.svg?style=social&label=Star&maxAge=60)](https://github.com/JasGujral/Quantsbin)
 
 # Quantsbin
 
 Open source library for finance.
+
+> **Revival in progress (2026).** Quantsbin is being modernised: a 1.1 release with bug fixes and modern packaging comes first, followed by Quantsbin 2.0 (typed, differentiable pricing with Monte Carlo, volatility and fixed income modules). Follow progress in [issues](https://github.com/JasGujral/Quantsbin/issues) and [pull requests](https://github.com/JasGujral/Quantsbin/pulls).
 
 Quantsbin 1.0.3, which started as a weekend project is currently in its initial phase and
 incorporates tools for pricing and plotting of vanilla option prices, greeks and various other analysis around them.
@@ -23,7 +25,7 @@ We are working on optimising calculations and expanding the scope of library in 
       directly generate and plot valuation and greeks for these strategies.
 
 ## License
-[MIT LICENCE](https://github.com/quantsbin/Quantsbin/blob/master/LICENSE/)
+[MIT License](LICENSE)
 
 ## Dependencies and Installation details
       scipy==1.6.3
@@ -40,14 +42,11 @@ Install using pip:
 >>> pip install quantsbin
 ```
 
-## Detailed documentation
-Refer to our [Documentation](http://www.quantsbin.com/introduction-to-option-pricing-using-python-library-quantsbin/) page
+## Examples
+See [examples/quickstart.py](examples/quickstart.py) for pricing, greeks, strategies and plotting.
 
-## Our Website
-For collaboration and suggestion reach us at [Quantsbin](http://www.quantsbin.com/)
-
-## Tutorial
-Refer to our [Tutorial](http://www.quantsbin.com/introduction-to-option-pricing-using-python-library-quantsbin/) page
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Note
-For Quantsbin 1.0.3 documentation are still WIP.
+Full documentation is being rebuilt as part of the 2.0 work.

@@ -1,13 +1,33 @@
-#pycharm
+# Byte-compiled / caches
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Editors / OS
 .idea/
-
-#vscode
 .vscode/
+.DS_Store
 
-#jupyter notebooks
-.ipynb_checkpoints
-
-#internal test file
-development_testing.py
-
+# Jupyter
+.ipynb_checkpoints/
