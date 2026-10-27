@@ -3,8 +3,44 @@ developed by Quantsbin - Jun'18
 
 """
 
+import os
+import warnings
 from datetime import datetime as dt
 from math import e
+
+_PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DEFAULT_VOLATILITY = 0.10
+
+
+def require_spot(spot0):
+    """Return the spot (or futures price), rejecting a missing or non-positive value."""
+    if spot0 is None or spot0 <= 0:
+        raise ValueError(f"spot0 (fwd0 for futures options) must be a positive number, got {spot0!r}")
+    return spot0
+
+
+def parse_pricing_date(pricing_date):
+    """Parse a 'YYYYMMDD' pricing date, rejecting a missing one."""
+    if pricing_date is None:
+        raise ValueError("pricing_date is required, as a 'YYYYMMDD' string, e.g. '20180531'")
+    return dt.strptime(pricing_date, "%Y%m%d")
+
+
+def volatility_or_default(volatility):
+    """Keep the 1.x behaviour of defaulting a missing volatility to 10%, but say so.
+
+    This becomes an error in Quantsbin 2.0.
+    """
+    if not volatility:
+        warnings.warn(
+            f"volatility was not given; using the 1.x default of {DEFAULT_VOLATILITY:.0%}. "
+            "Pass volatility explicitly: this default will be removed in Quantsbin 2.0.",
+            FutureWarning,
+            skip_file_prefixes=(_PACKAGE_DIR,),
+        )
+        return DEFAULT_VOLATILITY
+    return volatility
 
 
 def dividend_processor(div_list, pricing_date, expiry_date):
