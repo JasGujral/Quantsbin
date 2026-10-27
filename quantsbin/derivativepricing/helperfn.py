@@ -20,7 +20,8 @@ def dividend_processor(div_list, pricing_date, expiry_date):
 
 def pv_div(div_processed, time_point, disc_rate):
     pv_div_amount = 0
-    if len(div_processed) == 0: return pv_div_amount
+    if len(div_processed) == 0:
+        return pv_div_amount
     for div_time, div_amount in div_processed:
         disc_time = div_time - time_point
         if disc_time >= 0:

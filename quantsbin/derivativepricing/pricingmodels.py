@@ -5,16 +5,15 @@
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime as dt
-from math import log, sqrt
-import sys
+from math import e, log, sqrt
 
 import numpy as np
 from scipy import optimize
 from scipy.stats import norm
 
-from .namesnmapper import RiskParameter, VanillaOptionType, ExpiryType, UdlType
-from ..montecarlo.namesnmapper import StimulationType, mc_methd_mapper, ProcessNames
-from .helperfn import *
+from ..montecarlo.namesnmapper import ProcessNames, StimulationType, mc_methd_mapper
+from .helperfn import dividend_processor, pv_div
+from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
 
 
 class Model(metaclass=ABCMeta):

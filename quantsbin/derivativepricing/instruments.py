@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 from .engineconfig import PricingEngine
-from .namesnmapper import VanillaOptionType, ExpiryType, DEFAULT_MODEL, UdlType, OBJECT_MODEL, DerivativeType
+from .namesnmapper import DEFAULT_MODEL, OBJECT_MODEL, DerivativeType, ExpiryType, UdlType, VanillaOptionType
 
 
 class Instrument(metaclass=ABCMeta):

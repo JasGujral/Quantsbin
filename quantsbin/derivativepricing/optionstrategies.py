@@ -3,15 +3,14 @@
 
 """
 
-from multiprocessing import Pool
+import platform
 from collections import Counter
 from datetime import timedelta
 from functools import partial
-
-from .namesnmapper import VanillaOptionType, ExpiryType, UdlType, RiskParameter
+from multiprocessing import Pool
 
 from . import instruments as inst
-import platform
+from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
 
 VANILLA_OBJECT_MAPPER = {
     UdlType.STOCK.value: inst.EqOption,

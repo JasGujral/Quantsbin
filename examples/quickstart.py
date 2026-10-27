@@ -5,9 +5,6 @@
 
 import quantsbin.derivativepricing as qbdp
 
-import quantsbin.derivativepricing.plotting as pt
-
-
 """Defining options"""
 eqOption1 = qbdp.EqOption(option_type='Call', strike=100, expiry_date='20180630', expiry_type='European')
 eqOption2 = qbdp.EqOption(option_type='Call', strike=110, expiry_date='20180630', expiry_type='European')

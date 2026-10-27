@@ -3,7 +3,7 @@
 
 """
 
-from .namesnmapper import MODEL_MAPPER, IV_MODELS, ANALYTICAL_GREEKS, OBJECT_MODEL
+from .namesnmapper import ANALYTICAL_GREEKS, IV_MODELS, MODEL_MAPPER, OBJECT_MODEL
 from .numericalgreeks import NumericalGreeks
 
 

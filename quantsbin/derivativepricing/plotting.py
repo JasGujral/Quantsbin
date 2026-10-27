@@ -3,13 +3,15 @@
 
 """
 
-import numpy as np
 import copy
-import matplotlib
+
 import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-from .namesnmapper import UnderlyingParameters
+import numpy as np
 from scipy.interpolate import interp1d
+
+from .namesnmapper import UnderlyingParameters
+
+plt.style.use('ggplot')
 
 
 class Plotting:
@@ -58,7 +60,7 @@ class Plotting:
     def line_plot(self):
         """
             The plot uses matplotlib library and for smoothing purposes interp1d is used
-            (spline is retired since scipy 1.0.0) 
+            (spline is retired since scipy 1.0.0)
         :return: matplotlib plot object
         """
         _x_axis = self._x()
