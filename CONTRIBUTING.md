@@ -15,11 +15,14 @@ Thanks for helping revive Quantsbin.
 - Never use global random state; pass seeds or generators explicitly.
 
 ## Development setup
-Modern tooling (uv, ruff, pyright, pytest) is being introduced in the upcoming
-packaging and CI pull requests; this section will be filled in then.
-Until then:
+Quantsbin uses [uv](https://docs.astral.sh/uv/) and supports Python 3.12+.
 
 ```bash
-python -m pip install numpy scipy pandas matplotlib
-python -m unittest test
+git clone https://github.com/JasGujral/Quantsbin.git
+cd Quantsbin
+uv sync                      # creates .venv with locked dependencies
+uv run python -m unittest test
+uv build                     # builds sdist and wheel into dist/
 ```
+
+Linting, type checking and pytest arrive in the next tooling PR.

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quantsbin"
+dynamic = ["version"]
+description = "Option pricing and derivatives analytics: Black-Scholes, binomial, Monte Carlo, greeks and strategies"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jasmeet Gujral" }]
+keywords = [
+    "option pricing",
+    "derivatives",
+    "black-scholes",
+    "monte carlo",
+    "greeks",
+    "quantitative finance",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11.2",
+    "pandas>=2.1.1",
+    "matplotlib>=3.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/JasGujral/Quantsbin"
+Source = "https://github.com/JasGujral/Quantsbin"
+Issues = "https://github.com/JasGujral/Quantsbin/issues"
+Changelog = "https://github.com/JasGujral/Quantsbin/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "quantsbin/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["quantsbin"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "quantsbin/",
+    "examples/",
+    "test.py",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+]
