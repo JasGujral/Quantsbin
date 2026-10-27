@@ -27,19 +27,18 @@ We are working on optimising calculations and expanding the scope of library in 
 ## License
 [MIT License](LICENSE)
 
-## Dependencies and Installation details
-      scipy==1.6.3
-      pandas==1.2.4
-      matplotlib==3.4.2
-      numpy==1.18.0     
-    
-Install using setup.py:
+## Installation
+Requires Python 3.12 or newer.
 ```
->>> python setup.py install
+pip install quantsbin
 ```
-Install using pip:
+Dependencies (installed automatically): numpy >= 1.26, scipy >= 1.11.2, pandas >= 2.1.1, matplotlib >= 3.8.
+
+Install from source with [uv](https://docs.astral.sh/uv/):
 ```
->>> pip install quantsbin
+git clone https://github.com/JasGujral/Quantsbin.git
+cd Quantsbin
+uv sync
 ```
 
 ## Examples
