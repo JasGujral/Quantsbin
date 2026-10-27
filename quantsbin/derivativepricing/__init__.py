@@ -1,5 +1,5 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 

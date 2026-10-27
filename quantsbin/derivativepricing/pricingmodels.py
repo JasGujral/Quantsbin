@@ -1,5 +1,5 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
@@ -21,6 +21,7 @@ class Model(metaclass=ABCMeta):
     Basic model class defined with properties required for all the pricing models for any type of Asset class
 
     """
+
     @abstractmethod
     def valuation(self):
         pass
@@ -70,27 +71,39 @@ class BSMFramework(Model):
         pricing_date = (Date in string format "YYYYMMDD") e.g. 10 Dec 2018 as "20181210"
     """
 
-    def __init__(self, instrument, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0,
-                 pv_cnv=0, pv_cost=0, volatility=None, pricing_date=None, **kwargs):
+    def __init__(
+        self,
+        instrument,
+        spot0=None,
+        rf_rate=0,
+        cnv_yield=0,
+        cost_yield=0,
+        pv_cnv=0,
+        pv_cost=0,
+        volatility=None,
+        pricing_date=None,
+        **kwargs,
+    ):
         self.instrument = instrument
-        self.spot0 = spot0 or .00001
+        self.spot0 = spot0 or 0.00001
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
         self.pv_cnv = pv_cnv or 0
         self.pv_cost = pv_cost or 0
         self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, '%Y%m%d')
+        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
 
     @property
     def adj_spot0(self):
-        return self.spot0+self.pv_cost-self.pv_cnv
+        return self.spot0 + self.pv_cost - self.pv_cnv
 
     @property
     def d1(self):
-        return (log(self.adj_spot0 / self.instrument.strike) + (
-            self.rf_rate - self._cnv_yield + self.cost_yield + 0.5 * (self.volatility ** 2)) * self.maturity) \
-               / (self.volatility * sqrt(self.maturity))
+        return (
+            log(self.adj_spot0 / self.instrument.strike)
+            + (self.rf_rate - self._cnv_yield + self.cost_yield + 0.5 * (self.volatility**2)) * self.maturity
+        ) / (self.volatility * sqrt(self.maturity))
 
     @property
     def d2(self):
@@ -113,25 +126,23 @@ class BSMFramework(Model):
 
     def valuation(self):
         return self.option_flag * (
-            self.adj_spot0 * self.adj_discount_factor * norm.cdf(self.option_flag * self.d1)) \
-               - self.option_flag * (self.instrument.strike * self.discount_factor
-                                     * norm.cdf(self.option_flag * self.d2))
+            self.adj_spot0 * self.adj_discount_factor * norm.cdf(self.option_flag * self.d1)
+        ) - self.option_flag * (self.instrument.strike * self.discount_factor * norm.cdf(self.option_flag * self.d2))
 
     #   greeks defined
     def delta(self):
         return norm.cdf(self.option_flag * self.d1)
 
     def gamma(self):
-        return (norm.pdf(self.d1) * self.adj_discount_factor) / (
-            self.adj_spot0 * self.volatility * sqrt(self.maturity))
+        return (norm.pdf(self.d1) * self.adj_discount_factor) / (self.adj_spot0 * self.volatility * sqrt(self.maturity))
 
     def vega(self):
         return (self.adj_spot0 * self.adj_discount_factor * sqrt(self.maturity)) * norm.pdf(self.d1)
 
     def rho(self):
         return self.option_flag * (
-            self.instrument.strike * self.maturity * self.discount_factor
-            * norm.cdf(self.option_flag * self.d2))
+            self.instrument.strike * self.maturity * self.discount_factor * norm.cdf(self.option_flag * self.d2)
+        )
 
     def phi(self):
         return -1 * self.option_flag * self.adj_spot0 * self.maturity * norm.cdf(self.option_flag * self.d1)
@@ -140,24 +151,43 @@ class BSMFramework(Model):
         return -1 * self.maturity * self.valuation()
 
     def theta(self):
-        return ((-1 * norm.pdf(self.d1) * self.volatility * self.adj_discount_factor * self.adj_spot0 / (
-            2 * sqrt(self.maturity))) +
-                (self.option_flag * (self._cnv_yield - self.cost_yield) * self.adj_spot0
-                 * norm.cdf(self.option_flag * self.d1) * self.adj_discount_factor) -
-                (self.option_flag * self.rf_rate * self.instrument.strike * self.discount_factor
-                 * norm.cdf(self.option_flag * self.d2))) / 365
+        return (
+            (
+                -1
+                * norm.pdf(self.d1)
+                * self.volatility
+                * self.adj_discount_factor
+                * self.adj_spot0
+                / (2 * sqrt(self.maturity))
+            )
+            + (
+                self.option_flag
+                * (self._cnv_yield - self.cost_yield)
+                * self.adj_spot0
+                * norm.cdf(self.option_flag * self.d1)
+                * self.adj_discount_factor
+            )
+            - (
+                self.option_flag
+                * self.rf_rate
+                * self.instrument.strike
+                * self.discount_factor
+                * norm.cdf(self.option_flag * self.d2)
+            )
+        ) / 365
 
     @abstractmethod
     def risk_parameters(self):
         pass
 
     def risk_parameters_func(self):
-        return {RiskParameter.DELTA.value: self.delta,
-                RiskParameter.GAMMA.value: self.gamma,
-                RiskParameter.THETA.value: self.theta,
-                RiskParameter.VEGA.value: self.vega,
-                RiskParameter.RHO.value: self.rho,
-                }
+        return {
+            RiskParameter.DELTA.value: self.delta,
+            RiskParameter.GAMMA.value: self.gamma,
+            RiskParameter.THETA.value: self.theta,
+            RiskParameter.VEGA.value: self.vega,
+            RiskParameter.RHO.value: self.rho,
+        }
 
     def imply_volatility(self, premium):
         def objective_func(vol_guess):
@@ -180,12 +210,13 @@ class BSM(BSMFramework):
             help(.derivativepricing.pricingmodels.BSMFramework)
 
     """
+
     def __init__(self, instrument, **market_kwargs):
-        self._rf_rate = market_kwargs['rf_rate']
-        self._div_list = market_kwargs['div_list']
-        self._pricing_date = dt.strptime(market_kwargs['pricing_date'], '%Y%m%d')
+        self._rf_rate = market_kwargs["rf_rate"]
+        self._div_list = market_kwargs["div_list"]
+        self._pricing_date = dt.strptime(market_kwargs["pricing_date"], "%Y%m%d")
         self._instrument = instrument
-        market_kwargs['pv_cnv'] = self.pv_div()
+        market_kwargs["pv_cnv"] = self.pv_div()
         super().__init__(instrument, **market_kwargs)
 
     def pv_div(self):
@@ -202,7 +233,7 @@ class BSM(BSMFramework):
             RiskParameter.THETA.value: self.theta(),
             RiskParameter.VEGA.value: self.vega(),
             RiskParameter.RHO.value: self.rho(),
-            RiskParameter.PHI.value: self.phi()
+            RiskParameter.PHI.value: self.phi(),
         }
 
 
@@ -215,6 +246,7 @@ class B76(BSMFramework):
             help(.derivativepricing.pricingmodels.BSMFramework)
 
     """
+
     def __init__(self, instrument, **market_kwargs):
         super().__init__(instrument, **market_kwargs)
 
@@ -224,7 +256,7 @@ class B76(BSMFramework):
             RiskParameter.GAMMA.value: self.gamma(),
             RiskParameter.THETA.value: self.theta(),
             RiskParameter.VEGA.value: self.vega(),
-            RiskParameter.RHO.value: self.rho_fut()
+            RiskParameter.RHO.value: self.rho_fut(),
         }
         return risk_parameters
 
@@ -238,6 +270,7 @@ class GK(BSMFramework):
             help(.derivativepricing.pricingmodels.BSMFramework)
 
     """
+
     def __init__(self, instrument, **market_kwargs):
         self.instrument = instrument
         super().__init__(instrument, **market_kwargs)
@@ -277,16 +310,31 @@ class MonteCarloGBM(Model):
         div_list = (List). list of tuples with Ex-Dates and Dividend amounts. e.g. [('20180625',0.2),('20180727',0.6)]
 
     """
-    def __init__(self, instrument, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0, volatility=None, pricing_date=None,
-                 no_of_path=None, no_of_steps=None, mc_method=None, seed=None, antithetic=False, div_list=None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        instrument,
+        spot0=None,
+        rf_rate=0,
+        cnv_yield=0,
+        cost_yield=0,
+        volatility=None,
+        pricing_date=None,
+        no_of_path=None,
+        no_of_steps=None,
+        mc_method=None,
+        seed=None,
+        antithetic=False,
+        div_list=None,
+        **kwargs,
+    ):
         self.instrument = instrument
-        self.spot0 = spot0 or .0001
+        self.spot0 = spot0 or 0.0001
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
         self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, '%Y%m%d')
+        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
         self._no_of_path = no_of_path
         self.no_of_steps = no_of_steps or 100
         self.seed = seed or 100
@@ -330,15 +378,21 @@ class MonteCarloGBM(Model):
 
     @property
     def step_disc_fact(self):
-        return e**(-self.rf_rate * self.maturity / self.no_of_steps)
+        return e ** (-self.rf_rate * self.maturity / self.no_of_steps)
 
     def stimulation_method(self):
-        obj_stimulation = mc_methd_mapper[self.method](self.spot0, self.maturity, drift=self.drift,
-                                                       volatility=self.volatility,
-                                                       div_list_processed=self.div_processed,
-                                                       stimulation_type=self.stimulation_type,
-                                                       no_of_path=self.no_of_path, no_of_steps=self.no_of_steps,
-                                                       seed=self.seed, antithetic=self.antithetic)
+        obj_stimulation = mc_methd_mapper[self.method](
+            self.spot0,
+            self.maturity,
+            drift=self.drift,
+            volatility=self.volatility,
+            div_list_processed=self.div_processed,
+            stimulation_type=self.stimulation_type,
+            no_of_path=self.no_of_path,
+            no_of_steps=self.no_of_steps,
+            seed=self.seed,
+            antithetic=self.antithetic,
+        )
         return obj_stimulation.stimulation()
 
     def option_payoff(self, stimulated_price):
@@ -363,8 +417,9 @@ class MonteCarloGBM(Model):
                 laguerre_poly_4 = np.polynomial.laguerre.lagfit(_x_axis, _y_axis, laguerre_poly_degree)
                 _cond_pv = np.polynomial.laguerre.lagval(_x_axis, laguerre_poly_4)
 
-                _option_value[_ITM_check, t] = np.where(_intrinsic_val[_ITM_check, t] > _cond_pv.transpose(),
-                                                        _intrinsic_val[_ITM_check, t], _y_axis)
+                _option_value[_ITM_check, t] = np.where(
+                    _intrinsic_val[_ITM_check, t] > _cond_pv.transpose(), _intrinsic_val[_ITM_check, t], _y_axis
+                )
 
         _option_value[:, 0] = _option_value[:, 1] * self.step_disc_fact
         return np.mean(_option_value[:, 0])
@@ -372,8 +427,9 @@ class MonteCarloGBM(Model):
     def valuation(self):
         if self.instrument.expiry_type == ExpiryType.EUROPEAN.value:
             if self.div_list:
-                return np.average(self.option_payoff(self.stimulation_method()[:, -1])
-                                  * (e ** (-1 * self.rf_rate * self.maturity)))
+                return np.average(
+                    self.option_payoff(self.stimulation_method()[:, -1]) * (e ** (-1 * self.rf_rate * self.maturity))
+                )
             return np.average(self.option_payoff(self.stimulation_method()) * e ** (-1 * self.rf_rate * self.maturity))
         elif self.instrument.expiry_type == ExpiryType.AMERICAN.value:
             return self.LSM_model()
@@ -398,15 +454,26 @@ class BinomialModel(Model):
 
     """
 
-    def __init__(self, instrument, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0,
-                 volatility=None, pricing_date=None, no_of_steps=None, div_list=None, **kwargs):
+    def __init__(
+        self,
+        instrument,
+        spot0=None,
+        rf_rate=0,
+        cnv_yield=0,
+        cost_yield=0,
+        volatility=None,
+        pricing_date=None,
+        no_of_steps=None,
+        div_list=None,
+        **kwargs,
+    ):
         self.instrument = instrument
         self.spot0 = spot0 or 0.0001
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
         self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, '%Y%m%d')
+        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
         self.no_of_steps = no_of_steps or 100
         self.div_list = div_list
         self.cache_node = {}
@@ -425,19 +492,19 @@ class BinomialModel(Model):
 
     @property
     def t_delta(self):
-        return self.maturity/self.no_of_steps
+        return self.maturity / self.no_of_steps
 
     @property
     def up_mult(self):
-        return e**(self.volatility*(self.t_delta ** 0.5))
+        return e ** (self.volatility * (self.t_delta**0.5))
 
     @property
     def up_prob(self):
-        return (e**(self.drift * self.t_delta) - (1/self.up_mult))/(self.up_mult - (1/self.up_mult))
+        return (e ** (self.drift * self.t_delta) - (1 / self.up_mult)) / (self.up_mult - (1 / self.up_mult))
 
     @property
     def step_discount_fact(self):
-        return e**(-1*self.rf_rate * self.t_delta)
+        return e ** (-1 * self.rf_rate * self.t_delta)
 
     def node_value_store(self, pv, intrinsic_value):
         if self.instrument.expiry_type == ExpiryType.AMERICAN.value:
@@ -449,8 +516,9 @@ class BinomialModel(Model):
         return max(self.option_flag * (_spot - self.instrument.strike), 0.0)
 
     def calc_spot(self, step_no, no_up):
-        return self.spot_update * (self.up_mult**(2*no_up - step_no)) + \
-               pv_div(self.div_processed, self.t_delta * step_no, self.rf_rate)
+        return self.spot_update * (self.up_mult ** (2 * no_up - step_no)) + pv_div(
+            self.div_processed, self.t_delta * step_no, self.rf_rate
+        )
 
     def node_value(self, step_no, no_up):
         cache_node_key = (step_no, no_up)
@@ -463,9 +531,11 @@ class BinomialModel(Model):
             if step_no >= self.no_of_steps:
                 return _intrinsic_value
             else:
-                _pv = ((self.up_prob*self.node_value(step_no+1, no_up+1)) +
-                       ((1-self.up_prob)*self.node_value(step_no+1, no_up)))*self.step_discount_fact
-                _node_value = self.node_value_store(_pv,_intrinsic_value)
+                _pv = (
+                    (self.up_prob * self.node_value(step_no + 1, no_up + 1))
+                    + ((1 - self.up_prob) * self.node_value(step_no + 1, no_up))
+                ) * self.step_discount_fact
+                _node_value = self.node_value_store(_pv, _intrinsic_value)
                 self.cache_node[cache_node_key] = _node_value
                 return self.cache_node[cache_node_key]
 
@@ -474,5 +544,3 @@ class BinomialModel(Model):
 
     def risk_parameters(self):
         pass
-
-

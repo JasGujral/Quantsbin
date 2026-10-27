@@ -1,5 +1,5 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
@@ -16,7 +16,7 @@ VANILLA_OBJECT_MAPPER = {
     UdlType.STOCK.value: inst.EqOption,
     UdlType.FUTURES.value: inst.FutOption,
     UdlType.FX.value: inst.FXOption,
-    UdlType.COMMODITY.value: inst.ComOption
+    UdlType.COMMODITY.value: inst.ComOption,
 }
 
 
@@ -45,7 +45,7 @@ class OptionStr1Udl:
         self.spot = None
 
     def weighted_payoff(self, option_detail):
-        return option_detail[0].payoff(self.spot)*option_detail[1]
+        return option_detail[0].payoff(self.spot) * option_detail[1]
 
     def payoff(self, spot):
         self.spot = spot
@@ -57,7 +57,6 @@ class OptionStr1Udl:
 
 
 class Engine:
-
     def __init__(self, instrument, option_portfolio, **kwargs):
         self._other_args = kwargs
         self.option_portfolio = option_portfolio
@@ -97,7 +96,7 @@ class Engine:
             RiskParameter.THETA.value: partial(self.risk_parameter, RiskParameter.THETA.value),
             RiskParameter.VEGA.value: partial(self.risk_parameter, RiskParameter.VEGA.value),
             RiskParameter.RHO.value: partial(self.risk_parameter, RiskParameter.RHO.value),
-                }
+        }
 
 
 class StdStrategies(OptionStr1Udl):
@@ -119,8 +118,16 @@ class StdStrategies(OptionStr1Udl):
                             top_straddle, bottom_strangle, top_strangle, strip, strap]
     """
 
-    def __init__(self, name="bull_call", asset=None, expiry_date=None, expiry_type=None, low_strike=100,
-                 strike_spread=10, time_spread=30):
+    def __init__(
+        self,
+        name="bull_call",
+        asset=None,
+        expiry_date=None,
+        expiry_type=None,
+        low_strike=100,
+        strike_spread=10,
+        time_spread=30,
+    ):
         self.name = name
         self.asset = asset or UdlType.STOCK.value
         self.expiry_date = expiry_date or None
@@ -136,32 +143,53 @@ class StdStrategies(OptionStr1Udl):
         return _option_portfolio
 
     def low_option(self, option_type):
-        return VANILLA_OBJECT_MAPPER[self.asset](option_type=option_type, strike=self.strike - self.spread,
-                                                 expiry_date=self.expiry_date, expiry_type=self.expiry_type)
+        return VANILLA_OBJECT_MAPPER[self.asset](
+            option_type=option_type,
+            strike=self.strike - self.spread,
+            expiry_date=self.expiry_date,
+            expiry_type=self.expiry_type,
+        )
 
     def mid_option(self, option_type):
-        return VANILLA_OBJECT_MAPPER[self.asset](option_type=option_type, strike=self.strike,
-                                                 expiry_date=self.expiry_date, expiry_type=self.expiry_type)
+        return VANILLA_OBJECT_MAPPER[self.asset](
+            option_type=option_type, strike=self.strike, expiry_date=self.expiry_date, expiry_type=self.expiry_type
+        )
 
     def high_option(self, option_type):
-        return VANILLA_OBJECT_MAPPER[self.asset](option_type=option_type, strike=self.strike + self.spread,
-                                                 expiry_date=self.expiry_date, expiry_type=self.expiry_type)
+        return VANILLA_OBJECT_MAPPER[self.asset](
+            option_type=option_type,
+            strike=self.strike + self.spread,
+            expiry_date=self.expiry_date,
+            expiry_type=self.expiry_type,
+        )
 
     def before_option(self, option_type):
-        return VANILLA_OBJECT_MAPPER[self.asset](option_type=option_type, strike=self.strike, expiry_date=
-                                                 self.expiry_date - timedelta(days=self.time_spread),
-                                                 expiry_type=self.expiry_type)
+        return VANILLA_OBJECT_MAPPER[self.asset](
+            option_type=option_type,
+            strike=self.strike,
+            expiry_date=self.expiry_date - timedelta(days=self.time_spread),
+            expiry_type=self.expiry_type,
+        )
 
     def after_option(self, option_type):
-        return VANILLA_OBJECT_MAPPER[self.asset](option_type=option_type, strike=self.strike, expiry_date=
-                                                 self.expiry_date + timedelta(days=self.time_spread),
-                                                 expiry_type=self.expiry_type)
+        return VANILLA_OBJECT_MAPPER[self.asset](
+            option_type=option_type,
+            strike=self.strike,
+            expiry_date=self.expiry_date + timedelta(days=self.time_spread),
+            expiry_type=self.expiry_type,
+        )
 
     def bull_call(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), 1), (self.high_option(VanillaOptionType.CALL.value), -1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), 1),
+            (self.high_option(VanillaOptionType.CALL.value), -1),
+        ]
 
     def bear_call(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), -1), (self.high_option(VanillaOptionType.CALL.value), 1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), -1),
+            (self.high_option(VanillaOptionType.CALL.value), 1),
+        ]
 
     def bull_put(self):
         return [(self.mid_option(VanillaOptionType.PUT.value), 1), (self.high_option(VanillaOptionType.PUT.value), -1)]
@@ -170,16 +198,28 @@ class StdStrategies(OptionStr1Udl):
         return [(self.mid_option(VanillaOptionType.PUT.value), -1), (self.high_option(VanillaOptionType.PUT.value), 1)]
 
     def box_spread(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), 1), (self.high_option(VanillaOptionType.CALL.value), -1)
-                , (self.mid_option(VanillaOptionType.PUT.value), -1), (self.high_option(VanillaOptionType.PUT.value), 1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), 1),
+            (self.high_option(VanillaOptionType.CALL.value), -1),
+            (self.mid_option(VanillaOptionType.PUT.value), -1),
+            (self.high_option(VanillaOptionType.PUT.value), 1),
+        ]
 
     def butterfly_call(self):
-        return [(self.low_option(VanillaOptionType.CALL.value), 1), (self.mid_option(VanillaOptionType.CALL.value), -1),
-                (self.mid_option(VanillaOptionType.CALL.value), -1), (self.high_option(VanillaOptionType.CALL.value), 1)]
+        return [
+            (self.low_option(VanillaOptionType.CALL.value), 1),
+            (self.mid_option(VanillaOptionType.CALL.value), -1),
+            (self.mid_option(VanillaOptionType.CALL.value), -1),
+            (self.high_option(VanillaOptionType.CALL.value), 1),
+        ]
 
     def butterfly_put(self):
-        return [(self.low_option(VanillaOptionType.PUT.value), -1), (self.mid_option(VanillaOptionType.PUT.value), 1),
-                (self.mid_option(VanillaOptionType.PUT.value), 1), (self.high_option(VanillaOptionType.PUT.value), -1)]
+        return [
+            (self.low_option(VanillaOptionType.PUT.value), -1),
+            (self.mid_option(VanillaOptionType.PUT.value), 1),
+            (self.mid_option(VanillaOptionType.PUT.value), 1),
+            (self.high_option(VanillaOptionType.PUT.value), -1),
+        ]
 
     def calendar_call(self):
         return [(self.mid_option(VanillaOptionType.CALL.value), -1), self.after_option(VanillaOptionType.CALL.value), 1]
@@ -203,12 +243,21 @@ class StdStrategies(OptionStr1Udl):
         return [(self.mid_option(VanillaOptionType.CALL.value), 1), (self.high_option(VanillaOptionType.PUT.value), 1)]
 
     def top_strangle(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), -1), (self.high_option(VanillaOptionType.PUT.value), -1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), -1),
+            (self.high_option(VanillaOptionType.PUT.value), -1),
+        ]
 
     def strip(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), 1), (self.mid_option(VanillaOptionType.PUT.value), 1),
-                (self.mid_option(VanillaOptionType.PUT.value), 1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), 1),
+            (self.mid_option(VanillaOptionType.PUT.value), 1),
+            (self.mid_option(VanillaOptionType.PUT.value), 1),
+        ]
 
     def strap(self):
-        return [(self.mid_option(VanillaOptionType.CALL.value), 1), (self.mid_option(VanillaOptionType.CALL.value), 1),
-                (self.mid_option(VanillaOptionType.PUT.value), 1)]
+        return [
+            (self.mid_option(VanillaOptionType.CALL.value), 1),
+            (self.mid_option(VanillaOptionType.CALL.value), 1),
+            (self.mid_option(VanillaOptionType.PUT.value), 1),
+        ]

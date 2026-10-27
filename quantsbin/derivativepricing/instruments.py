@@ -1,5 +1,5 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
@@ -32,8 +32,8 @@ class Instrument(metaclass=ABCMeta):
                 For arguments required and method available for each model check\
                 help(.derivativepricing.pricingmodels.<model name>)
         """
-        if not kwargs['model']:
-            kwargs['model'] = DEFAULT_MODEL[self.undl][self.derivative_type][self.expiry_type]
+        if not kwargs["model"]:
+            kwargs["model"] = DEFAULT_MODEL[self.undl][self.derivative_type][self.expiry_type]
         return PricingEngine(self, **kwargs)
 
     def list_models(self):
@@ -57,7 +57,7 @@ class VanillaOption(Instrument):
         self.option_type = option_type or VanillaOptionType.CALL.value
         self.expiry_type = expiry_type or ExpiryType.EUROPEAN.value
         self.strike = strike
-        self.expiry_date = datetime.strptime(expiry_date, '%Y%m%d')
+        self.expiry_date = datetime.strptime(expiry_date, "%Y%m%d")
         self.derivative_type = derivative_type or DerivativeType.VANILLA_OPTION.value
 
     @property
@@ -92,14 +92,28 @@ class EqOption(VanillaOption):
             derivative_type: Default value as "Vanilla Option".
     """
 
-    def __init__(self, option_type=VanillaOptionType.CALL.value, expiry_type=ExpiryType.EUROPEAN.value,
-                 strike=None, expiry_date=None, derivative_type=None
-                 ):
+    def __init__(
+        self,
+        option_type=VanillaOptionType.CALL.value,
+        expiry_type=ExpiryType.EUROPEAN.value,
+        strike=None,
+        expiry_date=None,
+        derivative_type=None,
+    ):
         super().__init__(option_type, expiry_type, strike, expiry_date, derivative_type)
         self.undl = UdlType.STOCK.value
 
-    def engine(self, model=None, spot0=None, rf_rate=0, yield_div=0, div_list=None, volatility=None,
-               pricing_date=None, **kwargs):
+    def engine(
+        self,
+        model=None,
+        spot0=None,
+        rf_rate=0,
+        yield_div=0,
+        div_list=None,
+        volatility=None,
+        pricing_date=None,
+        **kwargs,
+    ):
         """
         Binds pricing model class and market data to the object
             Args required:
@@ -126,9 +140,18 @@ class EqOption(VanillaOption):
                         no_of_steps = (Integer). Number of steps (nodes) for the premium calculation.
                                        Maximum value accepted is 100. This limit will be increased
                                        in future release.
-                """
-        return super().engine(model=model, spot0=spot0, rf_rate=rf_rate, cnv_yield=yield_div, pv_cnv=0,
-                              div_list=div_list, volatility=volatility, pricing_date=pricing_date, **kwargs)
+        """
+        return super().engine(
+            model=model,
+            spot0=spot0,
+            rf_rate=rf_rate,
+            cnv_yield=yield_div,
+            pv_cnv=0,
+            div_list=div_list,
+            volatility=volatility,
+            pricing_date=pricing_date,
+            **kwargs,
+        )
 
 
 class FutOption(VanillaOption):
@@ -142,9 +165,14 @@ class FutOption(VanillaOption):
             expiry_date: (Date in string format "YYYYMMDD") e.g. 10 Dec 2018 as "20181210".
     """
 
-    def __init__(self, option_type=VanillaOptionType.CALL.value, expiry_type=ExpiryType.EUROPEAN.value,
-                 strike=None, expiry_date=None, derivative_type=None
-                 ):
+    def __init__(
+        self,
+        option_type=VanillaOptionType.CALL.value,
+        expiry_type=ExpiryType.EUROPEAN.value,
+        strike=None,
+        expiry_date=None,
+        derivative_type=None,
+    ):
         super().__init__(option_type, expiry_type, strike, expiry_date, derivative_type)
         self.undl = UdlType.FUTURES.value
 
@@ -173,8 +201,15 @@ class FutOption(VanillaOption):
                                        Maximum value accepted is 100. This limit will be increased
                                        in future release.
         """
-        return super().engine(model=model, spot0=fwd0, rf_rate=rf_rate, cnv_yield=rf_rate,
-                              volatility=volatility, pricing_date=pricing_date, **kwargs)
+        return super().engine(
+            model=model,
+            spot0=fwd0,
+            rf_rate=rf_rate,
+            cnv_yield=rf_rate,
+            volatility=volatility,
+            pricing_date=pricing_date,
+            **kwargs,
+        )
 
 
 class FXOption(VanillaOption):
@@ -188,14 +223,20 @@ class FXOption(VanillaOption):
             expiry_date: (Date in string format "YYYYMMDD") e.g. 10 Dec 2018 as "20181210".
     """
 
-    def __init__(self, option_type=VanillaOptionType.CALL.value, expiry_type=ExpiryType.EUROPEAN.value,
-                 strike=None, expiry_date=None, derivative_type=None
-                 ):
+    def __init__(
+        self,
+        option_type=VanillaOptionType.CALL.value,
+        expiry_type=ExpiryType.EUROPEAN.value,
+        strike=None,
+        expiry_date=None,
+        derivative_type=None,
+    ):
         super().__init__(option_type, expiry_type, strike, expiry_date, derivative_type)
         self.undl = UdlType.FX.value
 
-    def engine(self, model=None, spot0=None, rf_rate_local=0, rf_rate_foreign=0, volatility=None,
-               pricing_date=None, **kwargs):
+    def engine(
+        self, model=None, spot0=None, rf_rate_local=0, rf_rate_foreign=0, volatility=None, pricing_date=None, **kwargs
+    ):
         """
         Binds pricing model class and market data to the object
             Args required:
@@ -223,8 +264,15 @@ class FXOption(VanillaOption):
                                        Maximum value accepted is 100. This limit will be increased
                                        in future release.
         """
-        return super().engine(model=model, spot0=spot0, rf_rate=rf_rate_local, cnv_yield=rf_rate_foreign,
-                              volatility=volatility, pricing_date=pricing_date, **kwargs)
+        return super().engine(
+            model=model,
+            spot0=spot0,
+            rf_rate=rf_rate_local,
+            cnv_yield=rf_rate_foreign,
+            volatility=volatility,
+            pricing_date=pricing_date,
+            **kwargs,
+        )
 
 
 class ComOption(VanillaOption):
@@ -237,14 +285,21 @@ class ComOption(VanillaOption):
             strike: (Float in same unit as underlying price) e.g. 110.0
             expiry_date: (Date in string format "YYYYMMDD") e.g. 10 Dec 2018 as "20181210".
     """
-    def __init__(self, option_type=VanillaOptionType.CALL.value, expiry_type=ExpiryType.EUROPEAN.value,
-                 strike=None, expiry_date=None, derivative_type=None
-                 ):
+
+    def __init__(
+        self,
+        option_type=VanillaOptionType.CALL.value,
+        expiry_type=ExpiryType.EUROPEAN.value,
+        strike=None,
+        expiry_date=None,
+        derivative_type=None,
+    ):
         super().__init__(option_type, expiry_type, strike, expiry_date, derivative_type)
         self.undl = UdlType.COMMODITY.value
 
-    def engine(self, model=None, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0, volatility=None,
-               pricing_date=None, **kwargs):
+    def engine(
+        self, model=None, spot0=None, rf_rate=0, cnv_yield=0, cost_yield=0, volatility=None, pricing_date=None, **kwargs
+    ):
         """
         Binds pricing model class and market data to the object
             Args required:
@@ -271,5 +326,13 @@ class ComOption(VanillaOption):
                                        Maximum value accepted is 100. This limit will be increased
                                        in future release.
         """
-        return super().engine(model=model, spot0=spot0, rf_rate=rf_rate, cnv_yield=cnv_yield, cost_yield=cost_yield,
-                              volatility=volatility, pricing_date=pricing_date, **kwargs)
+        return super().engine(
+            model=model,
+            spot0=spot0,
+            rf_rate=rf_rate,
+            cnv_yield=cnv_yield,
+            cost_yield=cost_yield,
+            volatility=volatility,
+            pricing_date=pricing_date,
+            **kwargs,
+        )

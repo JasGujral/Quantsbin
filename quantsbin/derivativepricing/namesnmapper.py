@@ -1,5 +1,5 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
@@ -7,20 +7,20 @@ from enum import Enum
 
 
 class AssetClass(Enum):
-    EQOPTION = 'EqOption'
-    FXOPTION = 'FXOption'
-    FUTOPTION = 'FutOption'
-    COMOPTION = 'ComOption'
+    EQOPTION = "EqOption"
+    FXOPTION = "FXOption"
+    FUTOPTION = "FutOption"
+    COMOPTION = "ComOption"
 
 
 class DerivativeType(Enum):
-    VANILLA_OPTION = 'Vanilla Option'
+    VANILLA_OPTION = "Vanilla Option"
 
 
 class PricingModel(Enum):
-    BLACKSCHOLESMERTON = 'BSM'
-    BLACK76 = 'B76'
-    GK = 'GK'
+    BLACKSCHOLESMERTON = "BSM"
+    BLACK76 = "B76"
+    GK = "GK"
     MC_GBM = "MC_GBM"
     MC_GBM_LSM = "MC_GBM_LSM"
     BINOMIAL = "Binomial"
@@ -37,72 +37,88 @@ class UnderlyingParameters(Enum):
 
 
 class RiskParameter(Enum):
-    DELTA = 'delta'
-    GAMMA = 'gamma'
-    THETA = 'theta'
-    VEGA = 'vega'
-    RHO = 'rho'
-    PHI = 'phi'
-    RHO_FOREIGN = 'rho_foreign'
-    RHO_CONV = 'rho_conv_yield'
+    DELTA = "delta"
+    GAMMA = "gamma"
+    THETA = "theta"
+    VEGA = "vega"
+    RHO = "rho"
+    PHI = "phi"
+    RHO_FOREIGN = "rho_foreign"
+    RHO_CONV = "rho_conv_yield"
 
 
 class VanillaOptionType(Enum):
-    CALL = 'Call'
-    PUT = 'Put'
+    CALL = "Call"
+    PUT = "Put"
 
 
 class ExpiryType(Enum):
-    AMERICAN = 'American'
-    EUROPEAN = 'European'
+    AMERICAN = "American"
+    EUROPEAN = "European"
 
 
 class UdlType(Enum):
-    INDEX = 'Index'
-    STOCK = 'Stock'
-    FX = 'Currency'
-    COMMODITY = 'Commodity'
-    FUTURES = 'Futures'
+    INDEX = "Index"
+    STOCK = "Stock"
+    FX = "Currency"
+    COMMODITY = "Commodity"
+    FUTURES = "Futures"
 
 
 class DivType(Enum):
-    DISCRETE = 'Discrete'
-    YIELD = 'Yield'
+    DISCRETE = "Discrete"
+    YIELD = "Yield"
 
 
 OBJECT_MODEL = {
-    UdlType.STOCK.value: {ExpiryType.EUROPEAN.value: [PricingModel.BLACKSCHOLESMERTON.value, PricingModel.MC_GBM.value
-                          , PricingModel.BINOMIAL.value],
-                          ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
-    , UdlType.FUTURES.value: {ExpiryType.EUROPEAN.value: [PricingModel.BLACK76.value, PricingModel.MC_GBM.value
-                              , PricingModel.BINOMIAL.value],
-                              ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
-    , UdlType.FX.value:  {ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value
-                          , PricingModel.BINOMIAL.value],
-                          ExpiryType.AMERICAN.value:  [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
-    , UdlType.COMMODITY.value: {ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value
-                                , PricingModel.BINOMIAL.value],
-                                ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value]}
-    }
+    UdlType.STOCK.value: {
+        ExpiryType.EUROPEAN.value: [
+            PricingModel.BLACKSCHOLESMERTON.value,
+            PricingModel.MC_GBM.value,
+            PricingModel.BINOMIAL.value,
+        ],
+        ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+    },
+    UdlType.FUTURES.value: {
+        ExpiryType.EUROPEAN.value: [PricingModel.BLACK76.value, PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+        ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+    },
+    UdlType.FX.value: {
+        ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+        ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+    },
+    UdlType.COMMODITY.value: {
+        ExpiryType.EUROPEAN.value: [PricingModel.GK.value, PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+        ExpiryType.AMERICAN.value: [PricingModel.MC_GBM.value, PricingModel.BINOMIAL.value],
+    },
+}
 
 DEFAULT_MODEL = {
-    UdlType.STOCK.value:
-        {DerivativeType.VANILLA_OPTION.value: {ExpiryType.EUROPEAN.value: PricingModel.BLACKSCHOLESMERTON.value,
-                                               ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value},
-         },
-    UdlType.FUTURES.value:
-        {DerivativeType.VANILLA_OPTION.value: {ExpiryType.EUROPEAN.value: PricingModel.BLACK76.value,
-                                               ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value},
-         },
-    UdlType.FX.value:
-        {DerivativeType.VANILLA_OPTION.value: {ExpiryType.EUROPEAN.value: PricingModel.GK.value,
-                                               ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value},
-         },
-    UdlType.COMMODITY.value:
-        {DerivativeType.VANILLA_OPTION.value: {ExpiryType.EUROPEAN.value: PricingModel.GK.value,
-                                               ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value},
-         }
-    }
+    UdlType.STOCK.value: {
+        DerivativeType.VANILLA_OPTION.value: {
+            ExpiryType.EUROPEAN.value: PricingModel.BLACKSCHOLESMERTON.value,
+            ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value,
+        },
+    },
+    UdlType.FUTURES.value: {
+        DerivativeType.VANILLA_OPTION.value: {
+            ExpiryType.EUROPEAN.value: PricingModel.BLACK76.value,
+            ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value,
+        },
+    },
+    UdlType.FX.value: {
+        DerivativeType.VANILLA_OPTION.value: {
+            ExpiryType.EUROPEAN.value: PricingModel.GK.value,
+            ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value,
+        },
+    },
+    UdlType.COMMODITY.value: {
+        DerivativeType.VANILLA_OPTION.value: {
+            ExpiryType.EUROPEAN.value: PricingModel.GK.value,
+            ExpiryType.AMERICAN.value: PricingModel.BINOMIAL.value,
+        },
+    },
+}
 
 IV_MODELS = [PricingModel.BLACKSCHOLESMERTON.value, PricingModel.BLACK76.value, PricingModel.GK.value]
 
@@ -115,5 +131,5 @@ MODEL_MAPPER = {
     PricingModel.BLACK76.value: pm.B76,
     PricingModel.GK.value: pm.GK,
     PricingModel.MC_GBM.value: pm.MonteCarloGBM,
-    PricingModel.BINOMIAL.value: pm.BinomialModel
-    }
+    PricingModel.BINOMIAL.value: pm.BinomialModel,
+}
