@@ -4,7 +4,6 @@ developed by Quantsbin - Jun'18
 """
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime as dt
 from math import e, log, sqrt
 
 import numpy as np
@@ -12,7 +11,7 @@ from scipy import optimize
 from scipy.stats import norm
 
 from ..montecarlo.namesnmapper import ProcessNames, StimulationType, mc_methd_mapper
-from .helperfn import dividend_processor, pv_div
+from .helperfn import dividend_processor, parse_pricing_date, pv_div, require_spot, volatility_or_default
 from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
 
 
@@ -85,14 +84,14 @@ class BSMFramework(Model):
         **kwargs,
     ):
         self.instrument = instrument
-        self.spot0 = spot0 or 0.00001
+        self.spot0 = require_spot(spot0)
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
         self.pv_cnv = pv_cnv or 0
         self.pv_cost = pv_cost or 0
-        self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
+        self.volatility = volatility_or_default(volatility)
+        self._pricing_date = parse_pricing_date(pricing_date)
 
     @property
     def adj_spot0(self):
@@ -131,7 +130,8 @@ class BSMFramework(Model):
 
     #   greeks defined
     def delta(self):
-        return norm.cdf(self.option_flag * self.d1)
+        """dV/dS = flag * exp(-(q - c) T) * N(flag * d1)."""
+        return self.option_flag * self.adj_discount_factor * norm.cdf(self.option_flag * self.d1)
 
     def gamma(self):
         return (norm.pdf(self.d1) * self.adj_discount_factor) / (self.adj_spot0 * self.volatility * sqrt(self.maturity))
@@ -145,7 +145,15 @@ class BSMFramework(Model):
         )
 
     def phi(self):
-        return -1 * self.option_flag * self.adj_spot0 * self.maturity * norm.cdf(self.option_flag * self.d1)
+        """dV/dq = -flag * S * T * exp(-(q - c) T) * N(flag * d1)."""
+        return (
+            -1
+            * self.option_flag
+            * self.adj_spot0
+            * self.maturity
+            * self.adj_discount_factor
+            * norm.cdf(self.option_flag * self.d1)
+        )
 
     def rho_fut(self):
         return -1 * self.maturity * self.valuation()
@@ -214,7 +222,7 @@ class BSM(BSMFramework):
     def __init__(self, instrument, **market_kwargs):
         self._rf_rate = market_kwargs["rf_rate"]
         self._div_list = market_kwargs["div_list"]
-        self._pricing_date = dt.strptime(market_kwargs["pricing_date"], "%Y%m%d")
+        self._pricing_date = parse_pricing_date(market_kwargs.get("pricing_date"))
         self._instrument = instrument
         market_kwargs["pv_cnv"] = self.pv_div()
         super().__init__(instrument, **market_kwargs)
@@ -329,12 +337,12 @@ class MonteCarloGBM(Model):
         **kwargs,
     ):
         self.instrument = instrument
-        self.spot0 = spot0 or 0.0001
+        self.spot0 = require_spot(spot0)
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
-        self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
+        self.volatility = volatility_or_default(volatility)
+        self._pricing_date = parse_pricing_date(pricing_date)
         self._no_of_path = no_of_path
         self.no_of_steps = no_of_steps or 100
         self.seed = seed or 100
@@ -468,12 +476,12 @@ class BinomialModel(Model):
         **kwargs,
     ):
         self.instrument = instrument
-        self.spot0 = spot0 or 0.0001
+        self.spot0 = require_spot(spot0)
         self.rf_rate = rf_rate or 0
         self.cnv_yield = cnv_yield or 0
         self.cost_yield = cost_yield or 0
-        self.volatility = volatility or 0.10
-        self._pricing_date = dt.strptime(pricing_date, "%Y%m%d")
+        self.volatility = volatility_or_default(volatility)
+        self._pricing_date = parse_pricing_date(pricing_date)
         self.no_of_steps = no_of_steps or 100
         self.div_list = div_list
         self.cache_node = {}

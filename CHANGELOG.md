@@ -6,6 +6,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Missing market inputs are no longer silently replaced** (BSM, Black-76, GK, Binomial, Monte Carlo):
+  - a missing or non-positive `spot0` / `fwd0` now raises `ValueError` (1.0.3 priced with a spot of 0.00001);
+  - a missing `pricing_date` now raises `ValueError` with the expected format (1.0.3 raised an unclear `TypeError`);
+  - a missing (or zero) `volatility` still defaults to 10% but now emits a `FutureWarning` pointing at the calling line; this becomes an error in 2.0.
+- **Analytic delta** for BSM, Black-76 and Garman-Kohlhagen now includes the carry discount `exp(-(q - c) T)`, and put delta has the correct (negative) sign. In 1.0.3 put delta was returned as `+N(-d1)`. Equity call example (S=110, K=100, q=1%, 30d): 0.92095 -> 0.92020; put: +0.07905 -> -0.07898. Matches QuantLib.
+- **Phi** (dividend / carry-yield sensitivity) now includes the same `exp(-(q - c) T)` factor: -8.32641 -> -8.31957 in the same example. Matches QuantLib.
+
 ### Added
 - GitHub Actions CI: ruff, pyright (advisory) and pytest with coverage on Linux, macOS and Windows for Python 3.12-3.14; wheel build check.
 - pre-commit hooks (ruff lint and format), Dependabot for Actions and uv dependencies.
