@@ -32,9 +32,9 @@ CASES = [
         },
         110,
         10.60964,
-        # NOTE: 0.92095... omits the e^(-qT) dividend discount (audit bug 1).
-        # The correct BSM delta is 0.92020; this value is corrected together with the fix.
-        ("delta", 0.9209518466754392),
+        # 1.0.3 returned 0.92095 here (missing the e^(-qT) dividend discount, bug 1).
+        # Corrected value; matches QuantLib AnalyticEuropeanEngine to 1e-15.
+        ("delta", 0.9201952109409319),
         id="equity-bsm",
     ),
     pytest.param(

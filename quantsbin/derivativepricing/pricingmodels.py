@@ -131,7 +131,8 @@ class BSMFramework(Model):
 
     #   greeks defined
     def delta(self):
-        return norm.cdf(self.option_flag * self.d1)
+        """dV/dS = flag * exp(-(q - c) T) * N(flag * d1)."""
+        return self.option_flag * self.adj_discount_factor * norm.cdf(self.option_flag * self.d1)
 
     def gamma(self):
         return (norm.pdf(self.d1) * self.adj_discount_factor) / (self.adj_spot0 * self.volatility * sqrt(self.maturity))
@@ -145,7 +146,15 @@ class BSMFramework(Model):
         )
 
     def phi(self):
-        return -1 * self.option_flag * self.adj_spot0 * self.maturity * norm.cdf(self.option_flag * self.d1)
+        """dV/dq = -flag * S * T * exp(-(q - c) T) * N(flag * d1)."""
+        return (
+            -1
+            * self.option_flag
+            * self.adj_spot0
+            * self.maturity
+            * self.adj_discount_factor
+            * norm.cdf(self.option_flag * self.d1)
+        )
 
     def rho_fut(self):
         return -1 * self.maturity * self.valuation()
