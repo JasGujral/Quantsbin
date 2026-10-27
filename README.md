@@ -13,7 +13,7 @@ We are working on optimising calculations and expanding the scope of library in 
 ## Quantsbin 1.0.3 includes
    1. Option payoff, premium and greeks calculation for vanilla options on Equity, FX, Commodity and Futures.
    2. Capability to calculate greeks numerically for all models and also analytically for Black Scholes Model.
-   3. Price vanilla options with European expiry using BSM, Binomial tree and MonteCarlo with option to 
+   3. Price vanilla options with European expiry using BSM, Binomial tree and MonteCarlo with option to
       incorporate continuous compounded dividend yield for Equity options,
       cost and convenience yield for Commodity options and
       local and foreign risk-free rate in case of FX options.

@@ -20,9 +20,18 @@ Quantsbin uses [uv](https://docs.astral.sh/uv/) and supports Python 3.12+.
 ```bash
 git clone https://github.com/JasGujral/Quantsbin.git
 cd Quantsbin
-uv sync                      # creates .venv with locked dependencies
-uv run python -m unittest test
-uv build                     # builds sdist and wheel into dist/
+uv sync                          # .venv with locked runtime + dev dependencies
+uv run pre-commit install        # ruff lint/format on every commit
+uv run pytest --cov              # tests with coverage
+uv run ruff check . && uv run ruff format --check .
+uv run pyright                   # type check (advisory until the typing clean-up lands)
+uv build                         # sdist + wheel into dist/
 ```
 
-Linting, type checking and pytest arrive in the next tooling PR.
+CI runs the same checks on Linux, macOS and Windows for Python 3.12, 3.13 and 3.14.
+
+To skip the bulk reformat commit in `git blame`:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```

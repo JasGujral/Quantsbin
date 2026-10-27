@@ -56,7 +56,7 @@ packages = ["quantsbin"]
 include = [
     "quantsbin/",
     "examples/",
-    "test.py",
+    "tests/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
