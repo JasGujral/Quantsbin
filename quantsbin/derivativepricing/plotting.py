@@ -1,15 +1,17 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
-import numpy as np
 import copy
-import matplotlib
+
 import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-from .namesnmapper import UnderlyingParameters
+import numpy as np
 from scipy.interpolate import interp1d
+
+from .namesnmapper import UnderlyingParameters
+
+plt.style.use("ggplot")
 
 
 class Plotting:
@@ -23,8 +25,9 @@ class Plotting:
     :return: Graph of the func
     """
 
-    def __init__(self, instrument_object, func, x_axis=UnderlyingParameters.SPOT.value, x_axis_range=None
-                 , no_of_points=50):
+    def __init__(
+        self, instrument_object, func, x_axis=UnderlyingParameters.SPOT.value, x_axis_range=None, no_of_points=50
+    ):
         self.object = instrument_object
         self.func = func
         self.x_axis = x_axis
@@ -50,27 +53,27 @@ class Plotting:
         if self.func == "payoff":
             return list(map(getattr(self.object, self.func), list(self._x())))
         elif self.func == "pnl":
-            return np.array(list(map(getattr(self.object.instrument, "payoff"), list(self._x()))))\
-                    - self.object.valuation()
+            return (
+                np.array(list(map(getattr(self.object.instrument, "payoff"), list(self._x()))))
+                - self.object.valuation()
+            )
         else:
             return list(map(self._get_set, list(self._x())))
 
     def line_plot(self):
         """
             The plot uses matplotlib library and for smoothing purposes interp1d is used
-            (spline is retired since scipy 1.0.0) 
+            (spline is retired since scipy 1.0.0)
         :return: matplotlib plot object
         """
         _x_axis = self._x()
-        _x_new = np.linspace(_x_axis[0], _x_axis[-1], self.no_of_points*10)
+        _x_new = np.linspace(_x_axis[0], _x_axis[-1], self.no_of_points * 10)
         # _y_smooth = spline(_x_axis, self._y(), _x_new)
-        f = interp1d(_x_axis, self._y(), kind='cubic')
+        f = interp1d(_x_axis, self._y(), kind="cubic")
         _y_smooth = f(_x_new)
         plt.plot(_x_new, _y_smooth)
         plt.grid(True)
         plt.xlabel(str(self.x_axis).capitalize())
         plt.ylabel(str(self.func).capitalize())
-        plt.title(str(self.func).capitalize() + " vs "+str(self.x_axis).capitalize())
+        plt.title(str(self.func).capitalize() + " vs " + str(self.x_axis).capitalize())
         return plt
-
-

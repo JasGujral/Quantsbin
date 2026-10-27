@@ -1,15 +1,15 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
-from .namesnmapper import MODEL_MAPPER, IV_MODELS, ANALYTICAL_GREEKS, OBJECT_MODEL
+from .namesnmapper import ANALYTICAL_GREEKS, IV_MODELS, MODEL_MAPPER, OBJECT_MODEL
 from .numericalgreeks import NumericalGreeks
 
 
 class PricingEngine:
     """
-        Maps engine from instrument to model class.
+    Maps engine from instrument to model class.
     """
 
     def __init__(self, instrument, model, **kwargs):
@@ -34,8 +34,9 @@ class PricingEngine:
             Args required:
                 self.model: property defined in engineconfig module under Pricing Engine class
         """
-        assert self._model in OBJECT_MODEL[self.instrument.undl][self.instrument.expiry_type], \
+        assert self._model in OBJECT_MODEL[self.instrument.undl][self.instrument.expiry_type], (
             "Model not valid please check available models using option.list_models()"
+        )
         return True
 
     def valuation(self):
@@ -48,8 +49,16 @@ class PricingEngine:
         """
         return self._model_class.valuation()
 
-    def risk_parameters(self, delta_spot=None, delta_vol=None, delta_rf_rate=None,
-                            delta_time=None, delta_rf_conv=None, delta_cost_yield=None, **kwargs):
+    def risk_parameters(
+        self,
+        delta_spot=None,
+        delta_vol=None,
+        delta_rf_rate=None,
+        delta_time=None,
+        delta_rf_conv=None,
+        delta_cost_yield=None,
+        **kwargs,
+    ):
         """
         Maps to the riskparameters method defined under required pricing model class
         For American type of options only numerical greeks are calculated
@@ -61,12 +70,26 @@ class PricingEngine:
         if self._model in ANALYTICAL_GREEKS:
             return self._model_class.risk_parameters()
         else:
-            return self.risk_parameters_num(delta_spot=delta_spot, delta_vol=delta_vol
-                                            , delta_rf_rate=delta_rf_rate, delta_time=delta_time
-                                            , delta_rf_conv=delta_rf_conv, delta_cost_yield=delta_cost_yield, **kwargs)
+            return self.risk_parameters_num(
+                delta_spot=delta_spot,
+                delta_vol=delta_vol,
+                delta_rf_rate=delta_rf_rate,
+                delta_time=delta_time,
+                delta_rf_conv=delta_rf_conv,
+                delta_cost_yield=delta_cost_yield,
+                **kwargs,
+            )
 
-    def risk_parameters_num(self, delta_spot=None, delta_vol=None, delta_rf_rate=None,
-                            delta_time=None, delta_rf_conv=None, delta_cost_yield=None, **kwargs):
+    def risk_parameters_num(
+        self,
+        delta_spot=None,
+        delta_vol=None,
+        delta_rf_rate=None,
+        delta_time=None,
+        delta_rf_conv=None,
+        delta_cost_yield=None,
+        **kwargs,
+    ):
         """
         Maps to the risk_parameters_num method defined in numericalgreeks module.
             Args required:
@@ -74,16 +97,32 @@ class PricingEngine:
                 For arguments required and method available for each model check\
                 help(.numericalgreeks.NumericalGreeks)
         """
-        ng = NumericalGreeks(self._model_class, delta_spot, delta_vol, delta_rf_rate,
-                             delta_time, delta_rf_conv, delta_cost_yield, **kwargs)
+        ng = NumericalGreeks(
+            self._model_class,
+            delta_spot,
+            delta_vol,
+            delta_rf_rate,
+            delta_time,
+            delta_rf_conv,
+            delta_cost_yield,
+            **kwargs,
+        )
         return ng.risk_parameters_num()
 
     def risk_parameters_num_func(self):
         ng = NumericalGreeks(self._model_class)
         return ng.risk_parameters_num_func()
 
-    def pnl_attribution(self, delta_spot=None, delta_vol=None, delta_rf_rate=None,
-                        delta_time=None, delta_rf_conv=None, delta_rf_foreign=None,**kwargs):
+    def pnl_attribution(
+        self,
+        delta_spot=None,
+        delta_vol=None,
+        delta_rf_rate=None,
+        delta_time=None,
+        delta_rf_conv=None,
+        delta_rf_foreign=None,
+        **kwargs,
+    ):
         """
         Maps to the pnl_attribution method defined in numericalgreeks module.
             Args required:
@@ -91,8 +130,16 @@ class PricingEngine:
                 For arguments required and method available for each model check\
                 help(.numericalgreeks.NumericalGreeks)
         """
-        ng = NumericalGreeks(self._model_class, delta_spot, delta_vol, delta_rf_rate,
-                             delta_time, delta_rf_conv, delta_rf_foreign,**kwargs)
+        ng = NumericalGreeks(
+            self._model_class,
+            delta_spot,
+            delta_vol,
+            delta_rf_rate,
+            delta_time,
+            delta_rf_conv,
+            delta_rf_foreign,
+            **kwargs,
+        )
         return ng.pnl_attribution()
 
     def risk_parameters_func(self):

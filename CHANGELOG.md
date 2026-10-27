@@ -6,7 +6,13 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- GitHub Actions CI: ruff, pyright (advisory) and pytest with coverage on Linux, macOS and Windows for Python 3.12-3.14; wheel build check.
+- pre-commit hooks (ruff lint and format), Dependabot for Actions and uv dependencies.
+
 ### Changed
+- Tests moved from `test.py` (unittest) to `tests/` (pytest).
+- Code base formatted with ruff; wildcard import in `pricingmodels` replaced with explicit imports.
 - Packaging moved to `pyproject.toml` (hatchling) with a `uv.lock`; requires Python 3.12+.
 - Dependencies now use minimum versions (numpy >= 1.26, scipy >= 1.11.2, pandas >= 2.1.1, matplotlib >= 3.8) instead of 2021 pins; this clears the Dependabot alerts on the old pins.
 - Version is defined once, in `quantsbin.__version__`.

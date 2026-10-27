@@ -1,25 +1,22 @@
 """
-    developed by Quantsbin - Jun'18
+developed by Quantsbin - Jun'18
 
 """
 
 import quantsbin.derivativepricing as qbdp
 
-import quantsbin.derivativepricing.plotting as pt
-
-
 """Defining options"""
-eqOption1 = qbdp.EqOption(option_type='Call', strike=100, expiry_date='20180630', expiry_type='European')
-eqOption2 = qbdp.EqOption(option_type='Call', strike=110, expiry_date='20180630', expiry_type='European')
+eqOption1 = qbdp.EqOption(option_type="Call", strike=100, expiry_date="20180630", expiry_type="European")
+eqOption2 = qbdp.EqOption(option_type="Call", strike=110, expiry_date="20180630", expiry_type="European")
 
-fxOption1 = qbdp.FXOption(option_type='Call', strike=98, expiry_date='20190630', expiry_type='European')
-fxOption2 = qbdp.FXOption(option_type='Put', strike=95, expiry_date='20180630', expiry_type='American')
+fxOption1 = qbdp.FXOption(option_type="Call", strike=98, expiry_date="20190630", expiry_type="European")
+fxOption2 = qbdp.FXOption(option_type="Put", strike=95, expiry_date="20180630", expiry_type="American")
 
-futOption1 = qbdp.FutOption(option_type='Put', strike=102, expiry_date='20190630', expiry_type='American')
-futOption2 = qbdp.FutOption(option_type='Call', strike=95, expiry_date='20180630', expiry_type='European')
+futOption1 = qbdp.FutOption(option_type="Put", strike=102, expiry_date="20190630", expiry_type="American")
+futOption2 = qbdp.FutOption(option_type="Call", strike=95, expiry_date="20180630", expiry_type="European")
 
-comOption1 = qbdp.ComOption(option_type='Put', strike=95, expiry_date='20190630', expiry_type='European')
-comOption2 = qbdp.ComOption(option_type='Call', strike=105, expiry_date='20190630', expiry_type='American')
+comOption1 = qbdp.ComOption(option_type="Put", strike=95, expiry_date="20190630", expiry_type="European")
+comOption2 = qbdp.ComOption(option_type="Call", strike=105, expiry_date="20190630", expiry_type="American")
 
 """Creating list of all defined option for consolidate testing"""
 
@@ -46,9 +43,9 @@ comOption2 = qbdp.ComOption(option_type='Call', strike=105, expiry_date='2019063
 print(eqOption1.engine.__doc__)
 
 
-eqOption1_pricer = eqOption1.engine(model="BSM", spot0=100, pricing_date='20180531', volatility=.25,
-                                    rf_rate=.05, pv_div=0.0,
-                                    yield_div=0.0, seed=12)
+eqOption1_pricer = eqOption1.engine(
+    model="BSM", spot0=100, pricing_date="20180531", volatility=0.25, rf_rate=0.05, pv_div=0.0, yield_div=0.0, seed=12
+)
 
 print(eqOption1_pricer.risk_parameters_num())
 
@@ -59,10 +56,11 @@ print(eqOption1_pricer.risk_parameters_num())
 # delta_plt.show()
 
 OPTION1 = qbdp.OptionStr1Udl([(eqOption1, 1), (eqOption2, -1)])
-OPTION1_Pricer = OPTION1.engine(model="BSM", spot0=100, pricing_date='20180531', volatility=.25,
-                                rf_rate=.05, pv_div=0.0, yield_div=0.0, seed=12)
+OPTION1_Pricer = OPTION1.engine(
+    model="BSM", spot0=100, pricing_date="20180531", volatility=0.25, rf_rate=0.05, pv_div=0.0, yield_div=0.0, seed=12
+)
 
-test_plot = qbdp.Plotting(eqOption1_pricer,'pnl', x_axis_range=[50, 150]).line_plot()
+test_plot = qbdp.Plotting(eqOption1_pricer, "pnl", x_axis_range=[50, 150]).line_plot()
 test_plot.show()
 # option_payoff = qbdp.Plotting(OPTION1, "payoff", x_axis_range=[0, 200]).line_plot()
 #
@@ -72,8 +70,9 @@ test_plot.show()
 # option_val.show()
 
 abc = qbdp.StdStrategies(name="bull_call", expiry_date="20180630", expiry_type=None, low_strike=100, strike_spread=10)
-abc_engine = abc.engine(model="BSM", spot0=100, pricing_date='20180531', volatility=.25,
-                                 rf_rate=.05, pv_div=0.0, yield_div=0.0, seed=12)
+abc_engine = abc.engine(
+    model="BSM", spot0=100, pricing_date="20180531", volatility=0.25, rf_rate=0.05, pv_div=0.0, yield_div=0.0, seed=12
+)
 
 
 # stg_payoff = qbdp.Plotting(abc, "payoff", x_axis_range=[75, 125]).line_plot()
@@ -169,8 +168,6 @@ stg_gamma.show()
 #
 # print(eqOption_BSM_test_pricer.valuation())
 # print(eqOption_BSM_test_pricer.risk_parameters_num())
-
-
 
 
 """strategy1_constituents = [(eqOption1, 1), (eqOption2, -1)]

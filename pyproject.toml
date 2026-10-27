@@ -56,8 +56,50 @@ packages = ["quantsbin"]
 include = [
     "quantsbin/",
     "examples/",
-    "test.py",
+    "tests/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "pytest-cov>=7.0",
+    "ruff==0.14.0",
+    "pyright==1.1.407",
+    "pre-commit>=4.3",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # long lines are left to the formatter
+
+[tool.ruff.lint.per-file-ignores]
+# These modules import the model classes at the bottom on purpose to break an import cycle.
+"quantsbin/derivativepricing/namesnmapper.py" = ["E402"]
+"quantsbin/montecarlo/namesnmapper.py" = ["E402"]
+
+[tool.pyright]
+include = ["quantsbin"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["ignore::RuntimeWarning"]
+
+[tool.coverage.run]
+source = ["quantsbin"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
