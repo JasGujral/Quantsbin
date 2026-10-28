@@ -556,7 +556,6 @@ class BinomialModel(Model):
         self._pricing_date = parse_pricing_date(pricing_date)
         self.no_of_steps = no_of_steps or 100
         self.div_list = div_list
-        self.cache_node = {}
 
     @property
     def drift(self):
@@ -600,27 +599,32 @@ class BinomialModel(Model):
             self.div_processed, self.t_delta * step_no, self.rf_rate
         )
 
-    def node_value(self, step_no, no_up):
-        cache_node_key = (step_no, no_up)
-        if cache_node_key in self.cache_node:
-            return self.cache_node[cache_node_key]
-        else:
-            _spot = self.calc_spot(step_no, no_up)
-            _intrinsic_value = self.intrinsic_value(_spot)
+    def _spots_at_step(self, step_no):
+        """Stock prices at every node of a step: the CRR tree on S - PV(dividends) plus the PV of the
+        dividends still to be paid (escrowed dividends; Hull, Schroder 1988)."""
+        no_up = np.arange(step_no + 1)
+        return self.spot_update * (self.up_mult ** (2 * no_up - step_no)) + pv_div(
+            self.div_processed, self.t_delta * step_no, self.rf_rate
+        )
 
-            if step_no >= self.no_of_steps:
-                return _intrinsic_value
-            else:
-                _pv = (
-                    (self.up_prob * self.node_value(step_no + 1, no_up + 1))
-                    + ((1 - self.up_prob) * self.node_value(step_no + 1, no_up))
-                ) * self.step_discount_fact
-                _node_value = self.node_value_store(_pv, _intrinsic_value)
-                self.cache_node[cache_node_key] = _node_value
-                return self.cache_node[cache_node_key]
+    def _intrinsic_at_step(self, step_no):
+        return np.maximum(self.option_flag * (self._spots_at_step(step_no) - self.instrument.strike), 0.0)
 
     def valuation(self):
-        return self.node_value(0, 0)
+        """Backward induction over the recombining tree.
+
+        Iterative replacement of the 1.0.3 recursive version (same tree, same results), which hit
+        Python's recursion limit above about 1,000 steps and kept a node cache that was shared by
+        shallow copies of the model.
+        """
+        american = self.instrument.expiry_type == ExpiryType.AMERICAN.value
+        p, df = self.up_prob, self.step_discount_fact
+        values = self._intrinsic_at_step(self.no_of_steps)  # index = number of up moves
+        for step_no in range(self.no_of_steps - 1, -1, -1):
+            values = (p * values[1:] + (1 - p) * values[:-1]) * df
+            if american:
+                values = np.maximum(values, self._intrinsic_at_step(step_no))
+        return float(values[0])
 
     def risk_parameters(self):
         pass

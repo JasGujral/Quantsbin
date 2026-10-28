@@ -7,6 +7,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **Binomial tree** is now iterative: same CRR tree and escrowed dividends, identical prices (72 reference cases within 1.3e-15), but no recursion limit (1.0.3 failed above about 1,000 steps) and about 100x faster (900 steps: 2.0 s -> 0.02 s).
+- **Binomial P&L attribution** returned 0: the bumped and base trees shared one node cache through a shallow copy. Fixed by the iterative tree, which keeps no cache.
 - **Implied volatility** uses Brent's method on [0.01%, 500%] to machine precision (1.0.3: bisection on [0.1%, 99.9%] with tolerance 5e-5, so it failed above 99.9% vol and was accurate only to about 2e-5). A premium outside the no-arbitrage bounds now raises a clear `ValueError`. ATM call, vol 25%: 0.249982 -> 0.250000; vol 150%: error -> 1.5.
 - **Monte Carlo no longer resets numpy's global random state** (`np.random.seed`). It uses a local `RandomState(seed)`, which produces exactly the same paths, so Monte Carlo prices are unchanged. `seed=0` is now respected (1.0.3 silently replaced it with 100).
 - **Garman-Kohlhagen greeks** now include `rho_foreign` (FX options) and `rho_conv_yield` (commodity options). They were never returned because the underlying type was compared with an Enum member instead of its value.
