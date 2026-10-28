@@ -7,6 +7,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **Numerical greeks** no longer return NaN when no bump sizes are given. This affected `risk_parameters()` for every Binomial and Monte Carlo engine and `risk_parameters_num()` without arguments. The documented default bumps (2% spot/vol/rate, 1 day) now apply.
+- **Numerical rho / vega with a zero base value** (e.g. `rf_rate=0`): a relative bump never moved it, giving NaN; a zero base is now bumped by the absolute amount.
 - **Option strategies** no longer start a multiprocessing pool on every call. This crashed scripts without an `if __name__ == "__main__":` guard on macOS and on Python 3.14+, and was about 25x slower on 3.12 (1,000x on 3.14). Values unchanged.
 - **American Monte Carlo** now compares against exercising today, so it never prices below intrinsic value. Deep in-the-money put S=20, K=40: 19.9524 -> 20.0000. Other prices unchanged.
 - **American Monte Carlo (Longstaff-Schwartz)** no longer returns 0 when no simulated path is in the money at early exercise dates. The backward induction now carries every path's cashflow back at each step; the regression runs only when there are enough in-the-money paths. Example: American put S=55, K=40, vol 20%, r 6%, 1y, 50 steps: 0.0000 -> 0.1057 (European 0.1023). Prices that were already correct are unchanged.

@@ -97,16 +97,17 @@ class PricingEngine:
                 For arguments required and method available for each model check\
                 help(.numericalgreeks.NumericalGreeks)
         """
-        ng = NumericalGreeks(
-            self._model_class,
-            delta_spot,
-            delta_vol,
-            delta_rf_rate,
-            delta_time,
-            delta_rf_conv,
-            delta_cost_yield,
-            **kwargs,
-        )
+        # Pass only the bump sizes the caller gave, so NumericalGreeks' documented defaults apply to the rest.
+        # (1.0.3 passed None for every bump, which became 0 and made every numerical greek NaN.)
+        bumps = {
+            "delta_spot": delta_spot,
+            "delta_vol": delta_vol,
+            "delta_rf_rate": delta_rf_rate,
+            "delta_time": delta_time,
+            "delta_conv_yield": delta_rf_conv,
+            "delta_cost_yield": delta_cost_yield,
+        }
+        ng = NumericalGreeks(self._model_class, **{k: v for k, v in bumps.items() if v is not None}, **kwargs)
         return ng.risk_parameters_num()
 
     def risk_parameters_num_func(self):
