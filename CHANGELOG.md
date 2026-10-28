@@ -7,6 +7,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **Monte Carlo no longer resets numpy's global random state** (`np.random.seed`). It uses a local `RandomState(seed)`, which produces exactly the same paths, so Monte Carlo prices are unchanged. `seed=0` is now respected (1.0.3 silently replaced it with 100).
 - **Garman-Kohlhagen greeks** now include `rho_foreign` (FX options) and `rho_conv_yield` (commodity options). They were never returned because the underlying type was compared with an Enum member instead of its value.
 - **P&L attribution for FX options**: `delta_rf_foreign` was passed to the cost-yield slot, so a foreign-rate move produced no P&L. It now moves the foreign rate. `pnl_attribution` also accepts `delta_cost_yield`.
 - **Numerical greeks** no longer return NaN when no bump sizes are given. This affected `risk_parameters()` for every Binomial and Monte Carlo engine and `risk_parameters_num()` without arguments. The documented default bumps (2% spot/vol/rate, 1 day) now apply.

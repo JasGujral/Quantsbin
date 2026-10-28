@@ -346,7 +346,7 @@ class MonteCarloGBM(Model):
         self._pricing_date = parse_pricing_date(pricing_date)
         self._no_of_path = no_of_path
         self.no_of_steps = no_of_steps or 100
-        self.seed = seed or 100
+        self.seed = 100 if seed is None else seed
         self.antithetic = antithetic
         self.method = mc_method or ProcessNames.GEOMETRICBROWNIANMOTION.value
         self.div_list = div_list
