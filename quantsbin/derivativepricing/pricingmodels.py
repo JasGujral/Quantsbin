@@ -6,6 +6,7 @@ developed by Quantsbin - Jun'18
 import copy
 from abc import ABCMeta, abstractmethod
 from math import e, log, sqrt
+from typing import NamedTuple
 
 import numpy as np
 from scipy import optimize
@@ -14,6 +15,14 @@ from scipy.stats import norm
 from ..montecarlo.namesnmapper import ProcessNames, StimulationType, mc_methd_mapper
 from .helperfn import dividend_processor, parse_pricing_date, pv_div, require_spot, volatility_or_default
 from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
+
+
+class MCResult(NamedTuple):
+    """Monte Carlo price with its standard error (of the mean) and the number of simulated paths."""
+
+    price: float
+    standard_error: float
+    n_paths: int
 
 
 class Model(metaclass=ABCMeta):
@@ -495,14 +504,19 @@ class MonteCarloGBM(Model):
         ``out_of_sample=True`` the rule is fitted on one set of paths and applied to an
         independent set (seed ``out_of_sample_seed``); this gives a low-biased estimate.
         """
+        path_values, exercise_now = self._lsm_path_values()
+        # An American option can also be exercised today: never price below intrinsic value.
+        return max(np.mean(path_values), exercise_now)
+
+    def _lsm_path_values(self):
+        """Per-path discounted cashflows of the hold strategy, and the value of exercising today."""
         s_fit = self.stimulation_method()
         coefficients, intrinsic, cashflow_t1 = self._lsm_backward_induction(s_fit)
         if self.out_of_sample:
-            hold_value = np.mean(self._lsm_apply_rule(self.stimulation_method(self.out_of_sample_seed), coefficients))
+            path_values = self._lsm_apply_rule(self.stimulation_method(self.out_of_sample_seed), coefficients)
         else:
-            hold_value = np.mean(cashflow_t1 * self.step_disc_fact)
-        # An American option can also be exercised today: never price below intrinsic value.
-        return max(hold_value, intrinsic[0, 0])
+            path_values = cashflow_t1 * self.step_disc_fact
+        return path_values, intrinsic[0, 0]
 
     def valuation(self):
         if self.instrument.expiry_type == ExpiryType.EUROPEAN.value:
@@ -513,6 +527,32 @@ class MonteCarloGBM(Model):
             return np.average(self.option_payoff(self.stimulation_method()) * e ** (-1 * self.rf_rate * self.maturity))
         elif self.instrument.expiry_type == ExpiryType.AMERICAN.value:
             return self.LSM_model()
+
+    def valuation_with_error(self):
+        """Price, its Monte Carlo standard error, and the number of simulated paths.
+
+        The price equals ``valuation()``. With antithetic sampling the error is computed from the
+        averages of each antithetic pair. For American options, when exercising today beats the
+        simulated hold value, the price is the intrinsic value and the reported error is 0.
+        """
+        if self.instrument.expiry_type == ExpiryType.AMERICAN.value:
+            path_values, exercise_now = self._lsm_path_values()
+        else:
+            simulated = self.stimulation_method()
+            final = simulated[:, -1] if self.div_list else simulated
+            path_values = (self.option_payoff(final) * e ** (-1 * self.rf_rate * self.maturity)).ravel()
+            exercise_now = None
+
+        n_paths = len(path_values)
+        samples = path_values
+        if self.antithetic:
+            half = n_paths // 2
+            samples = 0.5 * (path_values[:half] + path_values[half:])
+        price = float(np.mean(path_values))
+        standard_error = float(np.std(samples, ddof=1) / np.sqrt(len(samples)))
+        if exercise_now is not None and exercise_now > price:
+            return MCResult(float(exercise_now), 0.0, n_paths)
+        return MCResult(price, standard_error, n_paths)
 
     def risk_parameters(self):
         return None

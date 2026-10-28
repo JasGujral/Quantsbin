@@ -49,6 +49,16 @@ class PricingEngine:
         """
         return self._model_class.valuation()
 
+    def valuation_with_error(self):
+        """Price with its Monte Carlo standard error: ``MCResult(price, standard_error, n_paths)``.
+
+        Available for the MC_GBM model only.
+        """
+        model = self._model_class
+        if not hasattr(model, "valuation_with_error"):
+            raise NameError(f"valuation_with_error is only available for Monte Carlo models, not {self._model}")
+        return model.valuation_with_error()
+
     def risk_parameters(
         self,
         delta_spot=None,
