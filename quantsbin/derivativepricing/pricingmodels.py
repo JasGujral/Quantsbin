@@ -334,6 +334,7 @@ class MonteCarloGBM(Model):
         seed=None,
         antithetic=False,
         div_list=None,
+        out_of_sample=False,
         **kwargs,
     ):
         self.instrument = instrument
@@ -349,6 +350,7 @@ class MonteCarloGBM(Model):
         self.antithetic = antithetic
         self.method = mc_method or ProcessNames.GEOMETRICBROWNIANMOTION.value
         self.div_list = div_list
+        self.out_of_sample = bool(out_of_sample)
 
     @property
     def div_processed(self):
@@ -388,7 +390,7 @@ class MonteCarloGBM(Model):
     def step_disc_fact(self):
         return e ** (-self.rf_rate * self.maturity / self.no_of_steps)
 
-    def stimulation_method(self):
+    def stimulation_method(self, seed=None):
         obj_stimulation = mc_methd_mapper[self.method](
             self.spot0,
             self.maturity,
@@ -398,7 +400,7 @@ class MonteCarloGBM(Model):
             stimulation_type=self.stimulation_type,
             no_of_path=self.no_of_path,
             no_of_steps=self.no_of_steps,
-            seed=self.seed,
+            seed=self.seed if seed is None else seed,
             antithetic=self.antithetic,
         )
         return obj_stimulation.stimulation()
@@ -407,33 +409,77 @@ class MonteCarloGBM(Model):
         temp_zeros = np.zeros_like(stimulated_price)
         return np.maximum(self.option_flag * (stimulated_price - self.instrument.strike), temp_zeros)
 
-    def LSM_model(self):
-        _s_stimulated = self.stimulation_method()
-        _intrinsic_val = self.option_payoff(_s_stimulated)
-        _option_value = np.zeros_like(_intrinsic_val)
-        _option_value[:, -1] = _intrinsic_val[:, -1]
+    LSM_POLY_DEGREE = 4
 
-        laguerre_poly_degree = 4
+    @property
+    def out_of_sample_seed(self):
+        """Seed for the independent pricing paths used when ``out_of_sample=True``."""
+        return (int(self.seed) * 1_000_003 + 7) % 2**32
+
+    def _lsm_backward_induction(self, s_stimulated):
+        """Longstaff-Schwartz backward induction.
+
+        Returns the per-date regression coefficients of the exercise rule and each path's
+        cashflow discounted to the first exercise date (in-sample).
+        """
+        intrinsic = self.option_payoff(s_stimulated)
+        option_value = np.zeros_like(intrinsic)
+        option_value[:, -1] = intrinsic[:, -1]
+        coefficients = {}
+
         for t in range(self.no_of_steps - 1, 0, -1):
             # Carry every path's cashflow back one step, whether or not any path is in the money.
             # (1.0.3 skipped this when no path was ITM, which zeroed the value at all earlier dates.)
-            _option_value[:, t] = _option_value[:, t + 1] * self.step_disc_fact
-            _ITM_check = _intrinsic_val[:, t] > 0
+            option_value[:, t] = option_value[:, t + 1] * self.step_disc_fact
+            itm = intrinsic[:, t] > 0
             # The exercise decision needs enough ITM paths for a meaningful regression.
-            if np.count_nonzero(_ITM_check) > laguerre_poly_degree + 1:
-                _x_axis = _s_stimulated[_ITM_check, t]
-                _y_axis = _option_value[_ITM_check, t]
-                laguerre_poly_4 = np.polynomial.laguerre.lagfit(_x_axis, _y_axis, laguerre_poly_degree)
-                _cond_pv = np.polynomial.laguerre.lagval(_x_axis, laguerre_poly_4)
+            if np.count_nonzero(itm) > self.LSM_POLY_DEGREE + 1:
+                x_axis = s_stimulated[itm, t]
+                y_axis = option_value[itm, t]
+                coef = np.polynomial.laguerre.lagfit(x_axis, y_axis, self.LSM_POLY_DEGREE)
+                continuation = np.polynomial.laguerre.lagval(x_axis, coef)
+                coefficients[t] = coef
+                option_value[itm, t] = np.where(intrinsic[itm, t] > continuation, intrinsic[itm, t], y_axis)
 
-                _option_value[_ITM_check, t] = np.where(
-                    _intrinsic_val[_ITM_check, t] > _cond_pv.transpose(), _intrinsic_val[_ITM_check, t], _y_axis
-                )
+        return coefficients, intrinsic, option_value[:, 1]
 
-        _option_value[:, 0] = _option_value[:, 1] * self.step_disc_fact
-        hold_value = np.mean(_option_value[:, 0])
+    def _lsm_apply_rule(self, s_stimulated, coefficients):
+        """Value fresh paths with a fixed exercise rule: exercise at the first date where the
+        intrinsic value beats the fitted continuation value. Returns cashflows discounted to t0."""
+        intrinsic = self.option_payoff(s_stimulated)
+        df = self.step_disc_fact
+        cashflow = intrinsic[:, -1] * df**self.no_of_steps
+        alive = np.ones(intrinsic.shape[0], dtype=bool)
+        for t in range(1, self.no_of_steps):
+            coef = coefficients.get(t)
+            if coef is None:
+                continue
+            itm = alive & (intrinsic[:, t] > 0)
+            exercise = np.zeros_like(alive)
+            exercise[itm] = intrinsic[itm, t] > np.polynomial.laguerre.lagval(s_stimulated[itm, t], coef)
+            cashflow[exercise] = intrinsic[exercise, t] * df**t
+            alive &= ~exercise
+        return cashflow
+
+    def LSM_model(self):
+        """American option value by Longstaff-Schwartz least-squares Monte Carlo.
+
+        Longstaff, F. and Schwartz, E. (2001), "Valuing American Options by Simulation:
+        A Simple Least-Squares Approach", Review of Financial Studies 14(1), 113-147.
+
+        With ``out_of_sample=False`` (default, 1.x behaviour) the exercise rule is fitted and
+        the option priced on the same paths; this estimator is biased slightly high. With
+        ``out_of_sample=True`` the rule is fitted on one set of paths and applied to an
+        independent set (seed ``out_of_sample_seed``); this gives a low-biased estimate.
+        """
+        s_fit = self.stimulation_method()
+        coefficients, intrinsic, cashflow_t1 = self._lsm_backward_induction(s_fit)
+        if self.out_of_sample:
+            hold_value = np.mean(self._lsm_apply_rule(self.stimulation_method(self.out_of_sample_seed), coefficients))
+        else:
+            hold_value = np.mean(cashflow_t1 * self.step_disc_fact)
         # An American option can also be exercised today: never price below intrinsic value.
-        return max(hold_value, _intrinsic_val[0, 0])
+        return max(hold_value, intrinsic[0, 0])
 
     def valuation(self):
         if self.instrument.expiry_type == ExpiryType.EUROPEAN.value:

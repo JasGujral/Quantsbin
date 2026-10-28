@@ -17,6 +17,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - **Phi** (dividend / carry-yield sensitivity) now includes the same `exp(-(q - c) T)` factor: -8.32641 -> -8.31957 in the same example. Matches QuantLib.
 
 ### Added
+- `out_of_sample` switch for American Monte Carlo (`engine(model="MC_GBM", ..., out_of_sample=True)`): fits the Longstaff-Schwartz exercise rule on one set of paths and prices on an independent set, removing the in-sample upward bias (about +0.01 on the LS 2001 benchmark). Default `False` keeps 1.x results.
 - GitHub Actions CI: ruff, pyright (advisory) and pytest with coverage on Linux, macOS and Windows for Python 3.12-3.14; wheel build check.
 - pre-commit hooks (ruff lint and format), Dependabot for Actions and uv dependencies.
 

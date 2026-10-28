@@ -40,3 +40,41 @@ def test_lsm_out_of_the_money_put_is_positive():
     european = _put("European", "BSM", spot=55.0).valuation()
     assert price == pytest.approx(european, rel=0.15)
     assert price > 0
+
+
+# ---- out_of_sample switch (point 4) -------------------------------------------------------
+
+
+def test_default_is_in_sample_and_unchanged():
+    # Same value as before the switch existed (in-sample LSM).
+    default = _put("American", "MC_GBM", no_of_path=100_000, no_of_steps=50, seed=7).valuation()
+    explicit = _put("American", "MC_GBM", no_of_path=100_000, no_of_steps=50, seed=7, out_of_sample=False).valuation()
+    assert default == explicit == pytest.approx(4.4782, abs=5e-5)
+
+
+def test_out_of_sample_matches_longstaff_schwartz_table_1():
+    price = _put("American", "MC_GBM", no_of_path=100_000, no_of_steps=50, seed=7, out_of_sample=True).valuation()
+    assert price == pytest.approx(LS_REF, abs=0.03)
+
+
+def test_out_of_sample_is_lower_on_average():
+    """Out-of-sample is a low-biased estimator, in-sample a high-biased one."""
+    ins, oos = [], []
+    for seed in range(1, 6):
+        ins.append(_put("American", "MC_GBM", no_of_path=20_000, no_of_steps=50, seed=seed).valuation())
+        oos.append(
+            _put("American", "MC_GBM", no_of_path=20_000, no_of_steps=50, seed=seed, out_of_sample=True).valuation()
+        )
+    assert sum(oos) < sum(ins)
+
+
+def test_out_of_sample_is_reproducible():
+    kw = dict(no_of_path=20_000, no_of_steps=50, seed=11, out_of_sample=True)
+    assert _put("American", "MC_GBM", **kw).valuation() == _put("American", "MC_GBM", **kw).valuation()
+
+
+def test_out_of_sample_keeps_intrinsic_floor_and_otm_fix():
+    deep = _put("American", "MC_GBM", spot=20.0, no_of_path=20_000, no_of_steps=50, seed=7, out_of_sample=True)
+    otm = _put("American", "MC_GBM", spot=55.0, no_of_path=50_000, no_of_steps=50, seed=7, out_of_sample=True)
+    assert deep.valuation() >= 20.0 - 1e-12
+    assert otm.valuation() > 0
