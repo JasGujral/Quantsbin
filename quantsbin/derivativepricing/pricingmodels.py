@@ -3,6 +3,7 @@ developed by Quantsbin - Jun'18
 
 """
 
+import copy
 from abc import ABCMeta, abstractmethod
 from math import e, log, sqrt
 
@@ -197,16 +198,38 @@ class BSMFramework(Model):
             RiskParameter.RHO.value: self.rho,
         }
 
-    def imply_volatility(self, premium):
-        def objective_func(vol_guess):
-            self.volatility = vol_guess
-            val = self.valuation()
-            return val - premium
+    IV_LOWER, IV_UPPER = 1e-4, 5.0
 
-        try:
-            return optimize.bisect(objective_func, a=0.001, b=0.999, xtol=0.00005)
-        except ValueError:
-            raise ValueError("Unable to converge to implied volatility")
+    def imply_volatility(self, premium):
+        """Black-Scholes-type implied volatility by Brent's method on [0.01%, 500%].
+
+        Raises ValueError if the premium is outside the no-arbitrage bounds of the model, or if
+        it needs a volatility outside the search range. The model itself is not modified.
+        """
+        trial = copy.copy(self)
+        forward_leg = trial.adj_spot0 * trial.adj_discount_factor  # S e^{-(q-c)T}
+        strike_leg = trial.instrument.strike * trial.discount_factor  # K e^{-rT}
+        if trial.option_flag == 1:
+            lower, upper = max(forward_leg - strike_leg, 0.0), forward_leg
+        else:
+            lower, upper = max(strike_leg - forward_leg, 0.0), strike_leg
+        if not lower < premium < upper:
+            raise ValueError(
+                f"premium {premium!r} is outside the no-arbitrage bounds ({lower:.6g}, {upper:.6g}) "
+                "for this option; no implied volatility exists"
+            )
+
+        def objective_func(vol_guess):
+            trial.volatility = vol_guess
+            return trial.valuation() - premium
+
+        f_low, f_high = objective_func(self.IV_LOWER), objective_func(self.IV_UPPER)
+        if f_low > 0 or f_high < 0:
+            raise ValueError(
+                f"implied volatility for premium {premium!r} is outside the search range "
+                f"[{self.IV_LOWER:.2%}, {self.IV_UPPER:.0%}]"
+            )
+        return optimize.brentq(objective_func, self.IV_LOWER, self.IV_UPPER, xtol=1e-12, maxiter=200)
 
 
 class BSM(BSMFramework):
