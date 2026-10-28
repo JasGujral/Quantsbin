@@ -49,11 +49,13 @@ class GeometricBrownianMotion:
                 assert self.random_array.shape == (self.no_of_path, self.no_of_steps), "Incorrect dimension of array"
             __norm_random = self.random_array
         else:
-            np.random.seed(self.seed)
+            # A local generator: same stream as np.random.seed(seed) + np.random.normal in 1.0.3,
+            # without resetting numpy's global random state for the caller.
+            rng = np.random.RandomState(self.seed)
             if self.stimulation_type == StimulationType.FINALVALUE.value:
-                __norm_random = np.random.normal(size=(self.no_of_path, 1))
+                __norm_random = rng.normal(size=(self.no_of_path, 1))
             else:
-                __norm_random = np.random.normal(size=(self.no_of_path, self.no_of_steps))
+                __norm_random = rng.normal(size=(self.no_of_path, self.no_of_steps))
 
         if self.antithetic:
             __norm_random = np.vstack((__norm_random, __norm_random * -1))

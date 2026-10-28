@@ -49,6 +49,16 @@ class PricingEngine:
         """
         return self._model_class.valuation()
 
+    def valuation_with_error(self):
+        """Price with its Monte Carlo standard error: ``MCResult(price, standard_error, n_paths)``.
+
+        Available for the MC_GBM model only.
+        """
+        model = self._model_class
+        if not hasattr(model, "valuation_with_error"):
+            raise NameError(f"valuation_with_error is only available for Monte Carlo models, not {self._model}")
+        return model.valuation_with_error()
+
     def risk_parameters(
         self,
         delta_spot=None,
@@ -97,16 +107,17 @@ class PricingEngine:
                 For arguments required and method available for each model check\
                 help(.numericalgreeks.NumericalGreeks)
         """
-        ng = NumericalGreeks(
-            self._model_class,
-            delta_spot,
-            delta_vol,
-            delta_rf_rate,
-            delta_time,
-            delta_rf_conv,
-            delta_cost_yield,
-            **kwargs,
-        )
+        # Pass only the bump sizes the caller gave, so NumericalGreeks' documented defaults apply to the rest.
+        # (1.0.3 passed None for every bump, which became 0 and made every numerical greek NaN.)
+        bumps = {
+            "delta_spot": delta_spot,
+            "delta_vol": delta_vol,
+            "delta_rf_rate": delta_rf_rate,
+            "delta_time": delta_time,
+            "delta_conv_yield": delta_rf_conv,
+            "delta_cost_yield": delta_cost_yield,
+        }
+        ng = NumericalGreeks(self._model_class, **{k: v for k, v in bumps.items() if v is not None}, **kwargs)
         return ng.risk_parameters_num()
 
     def risk_parameters_num_func(self):
@@ -121,23 +132,31 @@ class PricingEngine:
         delta_time=None,
         delta_rf_conv=None,
         delta_rf_foreign=None,
+        delta_cost_yield=None,
         **kwargs,
     ):
         """
         Maps to the pnl_attribution method defined in numericalgreeks module.
+
+        delta_rf_conv (convenience yield / dividend yield) and delta_rf_foreign (foreign rate for
+        FX options) both move the model's carry yield; give at most one of them.
             Args required:
                 **kwargs: Dictionary of parameters and their corresponding value required for pnl_attribution.
                 For arguments required and method available for each model check\
                 help(.numericalgreeks.NumericalGreeks)
         """
+        if delta_rf_conv is not None and delta_rf_foreign is not None:
+            raise ValueError("Give delta_rf_conv or delta_rf_foreign, not both: both move the carry yield")
+        # A move that is not given contributes no P&L (0), unlike greeks where defaults apply.
+        # 1.0.3 passed delta_rf_foreign into the cost-yield slot, so FX foreign-rate moves were lost.
         ng = NumericalGreeks(
             self._model_class,
-            delta_spot,
-            delta_vol,
-            delta_rf_rate,
-            delta_time,
-            delta_rf_conv,
-            delta_rf_foreign,
+            delta_spot=delta_spot or 0,
+            delta_vol=delta_vol or 0,
+            delta_rf_rate=delta_rf_rate or 0,
+            delta_time=delta_time or 0,
+            delta_conv_yield=(delta_rf_foreign if delta_rf_foreign is not None else delta_rf_conv) or 0,
+            delta_cost_yield=delta_cost_yield or 0,
             **kwargs,
         )
         return ng.pnl_attribution()

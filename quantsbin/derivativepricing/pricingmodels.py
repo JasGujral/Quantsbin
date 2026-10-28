@@ -3,8 +3,10 @@ developed by Quantsbin - Jun'18
 
 """
 
+import copy
 from abc import ABCMeta, abstractmethod
 from math import e, log, sqrt
+from typing import NamedTuple
 
 import numpy as np
 from scipy import optimize
@@ -13,6 +15,14 @@ from scipy.stats import norm
 from ..montecarlo.namesnmapper import ProcessNames, StimulationType, mc_methd_mapper
 from .helperfn import dividend_processor, parse_pricing_date, pv_div, require_spot, volatility_or_default
 from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
+
+
+class MCResult(NamedTuple):
+    """Monte Carlo price with its standard error (of the mean) and the number of simulated paths."""
+
+    price: float
+    standard_error: float
+    n_paths: int
 
 
 class Model(metaclass=ABCMeta):
@@ -197,21 +207,48 @@ class BSMFramework(Model):
             RiskParameter.RHO.value: self.rho,
         }
 
-    def imply_volatility(self, premium):
-        def objective_func(vol_guess):
-            self.volatility = vol_guess
-            val = self.valuation()
-            return val - premium
+    IV_LOWER, IV_UPPER = 1e-4, 5.0
 
-        try:
-            return optimize.bisect(objective_func, a=0.001, b=0.999, xtol=0.00005)
-        except ValueError:
-            raise ValueError("Unable to converge to implied volatility")
+    def imply_volatility(self, premium):
+        """Black-Scholes-type implied volatility by Brent's method on [0.01%, 500%].
+
+        Raises ValueError if the premium is outside the no-arbitrage bounds of the model, or if
+        it needs a volatility outside the search range. The model itself is not modified.
+        """
+        trial = copy.copy(self)
+        forward_leg = trial.adj_spot0 * trial.adj_discount_factor  # S e^{-(q-c)T}
+        strike_leg = trial.instrument.strike * trial.discount_factor  # K e^{-rT}
+        if trial.option_flag == 1:
+            lower, upper = max(forward_leg - strike_leg, 0.0), forward_leg
+        else:
+            lower, upper = max(strike_leg - forward_leg, 0.0), strike_leg
+        if not lower < premium < upper:
+            raise ValueError(
+                f"premium {premium!r} is outside the no-arbitrage bounds ({lower:.6g}, {upper:.6g}) "
+                "for this option; no implied volatility exists"
+            )
+
+        def objective_func(vol_guess):
+            trial.volatility = vol_guess
+            return trial.valuation() - premium
+
+        f_low, f_high = objective_func(self.IV_LOWER), objective_func(self.IV_UPPER)
+        if f_low > 0 or f_high < 0:
+            raise ValueError(
+                f"implied volatility for premium {premium!r} is outside the search range "
+                f"[{self.IV_LOWER:.2%}, {self.IV_UPPER:.0%}]"
+            )
+        return optimize.brentq(objective_func, self.IV_LOWER, self.IV_UPPER, xtol=1e-12, maxiter=200)
 
 
 class BSM(BSMFramework):
     """
     This is the Black Scholes Merton model. This model is for EqOption(Stocks)
+
+    Discrete dividends (div_list) use the escrowed model (Black 1975; Hull): the spot is reduced by
+    the present value of dividends paid before expiry and the volatility is applied unchanged (no
+    sigma* adjustment). The Monte Carlo model instead drops the spot on each ex-date, so the two
+    differ slightly when there are discrete dividends.
         Args required:
             instrument = Instrument parameters mapped from instrument module
             **market_kwargs = All the parameters from BSMFramework
@@ -291,9 +328,9 @@ class GK(BSMFramework):
             RiskParameter.VEGA.value: self.vega(),
             RiskParameter.RHO.value: self.rho(),
         }
-        if self.instrument.undl == UdlType.FX:
+        if self.instrument.undl == UdlType.FX.value:
             risk_parameters.update({RiskParameter.RHO_FOREIGN.value: self.phi()})
-        elif self.instrument.undl == UdlType.COMMODITY:
+        elif self.instrument.undl == UdlType.COMMODITY.value:
             risk_parameters.update({RiskParameter.RHO_CONV.value: self.phi()})
         return risk_parameters
 
@@ -302,6 +339,14 @@ class MonteCarloGBM(Model):
     """
     This is the Montecarlo Simulation(for Geometric Brownian motion) method for both European and
     American type of Options for all Asset classes. For American Type LSM method is used defined under this class
+
+    Discrete dividends (div_list) use the spot-drop model: each path falls by the dividend amount at
+    the first time step after the ex-date (step int(t_ex / dt) + 1, so up to one step late) and is
+    lognormal in between. BSM and Binomial use the escrowed model instead.
+
+    Greeks are bump-and-reprice with the same seed. For American options the gamma is noisy and
+    biased, because the bumped runs fit slightly different exercise rules; use the Binomial model for
+    American gamma. Use valuation_with_error() to see the Monte Carlo standard error.
         Args required:
         instrument = Instrument parameters mapped from instrument module
         spot0 = (Float) e.g. 110.0
@@ -334,6 +379,7 @@ class MonteCarloGBM(Model):
         seed=None,
         antithetic=False,
         div_list=None,
+        out_of_sample=False,
         **kwargs,
     ):
         self.instrument = instrument
@@ -345,10 +391,11 @@ class MonteCarloGBM(Model):
         self._pricing_date = parse_pricing_date(pricing_date)
         self._no_of_path = no_of_path
         self.no_of_steps = no_of_steps or 100
-        self.seed = seed or 100
+        self.seed = 100 if seed is None else seed
         self.antithetic = antithetic
         self.method = mc_method or ProcessNames.GEOMETRICBROWNIANMOTION.value
         self.div_list = div_list
+        self.out_of_sample = bool(out_of_sample)
 
     @property
     def div_processed(self):
@@ -388,7 +435,7 @@ class MonteCarloGBM(Model):
     def step_disc_fact(self):
         return e ** (-self.rf_rate * self.maturity / self.no_of_steps)
 
-    def stimulation_method(self):
+    def stimulation_method(self, seed=None):
         obj_stimulation = mc_methd_mapper[self.method](
             self.spot0,
             self.maturity,
@@ -398,7 +445,7 @@ class MonteCarloGBM(Model):
             stimulation_type=self.stimulation_type,
             no_of_path=self.no_of_path,
             no_of_steps=self.no_of_steps,
-            seed=self.seed,
+            seed=self.seed if seed is None else seed,
             antithetic=self.antithetic,
         )
         return obj_stimulation.stimulation()
@@ -407,30 +454,82 @@ class MonteCarloGBM(Model):
         temp_zeros = np.zeros_like(stimulated_price)
         return np.maximum(self.option_flag * (stimulated_price - self.instrument.strike), temp_zeros)
 
-    def LSM_model(self):
-        _s_stimulated = self.stimulation_method()
-        _intrinsic_val = self.option_payoff(_s_stimulated)
-        _option_value = np.zeros_like(_intrinsic_val)
-        _option_value[:, -1] = _intrinsic_val[:, -1]
+    LSM_POLY_DEGREE = 4
+
+    @property
+    def out_of_sample_seed(self):
+        """Seed for the independent pricing paths used when ``out_of_sample=True``."""
+        return (int(self.seed) * 1_000_003 + 7) % 2**32
+
+    def _lsm_backward_induction(self, s_stimulated):
+        """Longstaff-Schwartz backward induction.
+
+        Returns the per-date regression coefficients of the exercise rule and each path's
+        cashflow discounted to the first exercise date (in-sample).
+        """
+        intrinsic = self.option_payoff(s_stimulated)
+        option_value = np.zeros_like(intrinsic)
+        option_value[:, -1] = intrinsic[:, -1]
+        coefficients = {}
 
         for t in range(self.no_of_steps - 1, 0, -1):
-            if len(_s_stimulated[_intrinsic_val[:, t] > 0, t]) == 0:
+            # Carry every path's cashflow back one step, whether or not any path is in the money.
+            # (1.0.3 skipped this when no path was ITM, which zeroed the value at all earlier dates.)
+            option_value[:, t] = option_value[:, t + 1] * self.step_disc_fact
+            itm = intrinsic[:, t] > 0
+            # The exercise decision needs enough ITM paths for a meaningful regression.
+            if np.count_nonzero(itm) > self.LSM_POLY_DEGREE + 1:
+                x_axis = s_stimulated[itm, t]
+                y_axis = option_value[itm, t]
+                coef = np.polynomial.laguerre.lagfit(x_axis, y_axis, self.LSM_POLY_DEGREE)
+                continuation = np.polynomial.laguerre.lagval(x_axis, coef)
+                coefficients[t] = coef
+                option_value[itm, t] = np.where(intrinsic[itm, t] > continuation, intrinsic[itm, t], y_axis)
+
+        return coefficients, intrinsic, option_value[:, 1]
+
+    def _lsm_apply_rule(self, s_stimulated, coefficients):
+        """Value fresh paths with a fixed exercise rule: exercise at the first date where the
+        intrinsic value beats the fitted continuation value. Returns cashflows discounted to t0."""
+        intrinsic = self.option_payoff(s_stimulated)
+        df = self.step_disc_fact
+        cashflow = intrinsic[:, -1] * df**self.no_of_steps
+        alive = np.ones(intrinsic.shape[0], dtype=bool)
+        for t in range(1, self.no_of_steps):
+            coef = coefficients.get(t)
+            if coef is None:
                 continue
-            else:
-                _ITM_check = _intrinsic_val[:, t] > 0
-                _x_axis = _s_stimulated[_ITM_check, t]
-                _y_axis = _option_value[_ITM_check, t + 1] * self.step_disc_fact
-                _option_value[:, t] = _option_value[:, t + 1] * self.step_disc_fact
-                laguerre_poly_degree = 4
-                laguerre_poly_4 = np.polynomial.laguerre.lagfit(_x_axis, _y_axis, laguerre_poly_degree)
-                _cond_pv = np.polynomial.laguerre.lagval(_x_axis, laguerre_poly_4)
+            itm = alive & (intrinsic[:, t] > 0)
+            exercise = np.zeros_like(alive)
+            exercise[itm] = intrinsic[itm, t] > np.polynomial.laguerre.lagval(s_stimulated[itm, t], coef)
+            cashflow[exercise] = intrinsic[exercise, t] * df**t
+            alive &= ~exercise
+        return cashflow
 
-                _option_value[_ITM_check, t] = np.where(
-                    _intrinsic_val[_ITM_check, t] > _cond_pv.transpose(), _intrinsic_val[_ITM_check, t], _y_axis
-                )
+    def LSM_model(self):
+        """American option value by Longstaff-Schwartz least-squares Monte Carlo.
 
-        _option_value[:, 0] = _option_value[:, 1] * self.step_disc_fact
-        return np.mean(_option_value[:, 0])
+        Longstaff, F. and Schwartz, E. (2001), "Valuing American Options by Simulation:
+        A Simple Least-Squares Approach", Review of Financial Studies 14(1), 113-147.
+
+        With ``out_of_sample=False`` (default, 1.x behaviour) the exercise rule is fitted and
+        the option priced on the same paths; this estimator is biased slightly high. With
+        ``out_of_sample=True`` the rule is fitted on one set of paths and applied to an
+        independent set (seed ``out_of_sample_seed``); this gives a low-biased estimate.
+        """
+        path_values, exercise_now = self._lsm_path_values()
+        # An American option can also be exercised today: never price below intrinsic value.
+        return max(np.mean(path_values), exercise_now)
+
+    def _lsm_path_values(self):
+        """Per-path discounted cashflows of the hold strategy, and the value of exercising today."""
+        s_fit = self.stimulation_method()
+        coefficients, intrinsic, cashflow_t1 = self._lsm_backward_induction(s_fit)
+        if self.out_of_sample:
+            path_values = self._lsm_apply_rule(self.stimulation_method(self.out_of_sample_seed), coefficients)
+        else:
+            path_values = cashflow_t1 * self.step_disc_fact
+        return path_values, intrinsic[0, 0]
 
     def valuation(self):
         if self.instrument.expiry_type == ExpiryType.EUROPEAN.value:
@@ -442,6 +541,32 @@ class MonteCarloGBM(Model):
         elif self.instrument.expiry_type == ExpiryType.AMERICAN.value:
             return self.LSM_model()
 
+    def valuation_with_error(self):
+        """Price, its Monte Carlo standard error, and the number of simulated paths.
+
+        The price equals ``valuation()``. With antithetic sampling the error is computed from the
+        averages of each antithetic pair. For American options, when exercising today beats the
+        simulated hold value, the price is the intrinsic value and the reported error is 0.
+        """
+        if self.instrument.expiry_type == ExpiryType.AMERICAN.value:
+            path_values, exercise_now = self._lsm_path_values()
+        else:
+            simulated = self.stimulation_method()
+            final = simulated[:, -1] if self.div_list else simulated
+            path_values = (self.option_payoff(final) * e ** (-1 * self.rf_rate * self.maturity)).ravel()
+            exercise_now = None
+
+        n_paths = len(path_values)
+        samples = path_values
+        if self.antithetic:
+            half = n_paths // 2
+            samples = 0.5 * (path_values[:half] + path_values[half:])
+        price = float(np.mean(path_values))
+        standard_error = float(np.std(samples, ddof=1) / np.sqrt(len(samples)))
+        if exercise_now is not None and exercise_now > price:
+            return MCResult(float(exercise_now), 0.0, n_paths)
+        return MCResult(price, standard_error, n_paths)
+
     def risk_parameters(self):
         return None
 
@@ -449,6 +574,10 @@ class MonteCarloGBM(Model):
 class BinomialModel(Model):
     """
     This is the generalised Binomial model used for valuation calculation for both European and American type
+
+    Cox-Ross-Rubinstein tree. Discrete dividends (div_list) use the escrowed approach of Hull and
+    Schroder (1988): the tree is built on S - PV(dividends) and the PV of the remaining dividends is
+    added back at each node; the volatility is applied unchanged (no sigma* adjustment).
         Args required:
         instrument = Instrument parameters mapped from instrument module
         spot0 = (Float) e.g. 110.0
@@ -484,7 +613,6 @@ class BinomialModel(Model):
         self._pricing_date = parse_pricing_date(pricing_date)
         self.no_of_steps = no_of_steps or 100
         self.div_list = div_list
-        self.cache_node = {}
 
     @property
     def drift(self):
@@ -528,27 +656,32 @@ class BinomialModel(Model):
             self.div_processed, self.t_delta * step_no, self.rf_rate
         )
 
-    def node_value(self, step_no, no_up):
-        cache_node_key = (step_no, no_up)
-        if cache_node_key in self.cache_node:
-            return self.cache_node[cache_node_key]
-        else:
-            _spot = self.calc_spot(step_no, no_up)
-            _intrinsic_value = self.intrinsic_value(_spot)
+    def _spots_at_step(self, step_no):
+        """Stock prices at every node of a step: the CRR tree on S - PV(dividends) plus the PV of the
+        dividends still to be paid (escrowed dividends; Hull, Schroder 1988)."""
+        no_up = np.arange(step_no + 1)
+        return self.spot_update * (self.up_mult ** (2 * no_up - step_no)) + pv_div(
+            self.div_processed, self.t_delta * step_no, self.rf_rate
+        )
 
-            if step_no >= self.no_of_steps:
-                return _intrinsic_value
-            else:
-                _pv = (
-                    (self.up_prob * self.node_value(step_no + 1, no_up + 1))
-                    + ((1 - self.up_prob) * self.node_value(step_no + 1, no_up))
-                ) * self.step_discount_fact
-                _node_value = self.node_value_store(_pv, _intrinsic_value)
-                self.cache_node[cache_node_key] = _node_value
-                return self.cache_node[cache_node_key]
+    def _intrinsic_at_step(self, step_no):
+        return np.maximum(self.option_flag * (self._spots_at_step(step_no) - self.instrument.strike), 0.0)
 
     def valuation(self):
-        return self.node_value(0, 0)
+        """Backward induction over the recombining tree.
+
+        Iterative replacement of the 1.0.3 recursive version (same tree, same results), which hit
+        Python's recursion limit above about 1,000 steps and kept a node cache that was shared by
+        shallow copies of the model.
+        """
+        american = self.instrument.expiry_type == ExpiryType.AMERICAN.value
+        p, df = self.up_prob, self.step_discount_fact
+        values = self._intrinsic_at_step(self.no_of_steps)  # index = number of up moves
+        for step_no in range(self.no_of_steps - 1, -1, -1):
+            values = (p * values[1:] + (1 - p) * values[:-1]) * df
+            if american:
+                values = np.maximum(values, self._intrinsic_at_step(step_no))
+        return float(values[0])
 
     def risk_parameters(self):
         pass
