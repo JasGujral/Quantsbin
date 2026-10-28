@@ -413,15 +413,16 @@ class MonteCarloGBM(Model):
         _option_value = np.zeros_like(_intrinsic_val)
         _option_value[:, -1] = _intrinsic_val[:, -1]
 
+        laguerre_poly_degree = 4
         for t in range(self.no_of_steps - 1, 0, -1):
-            if len(_s_stimulated[_intrinsic_val[:, t] > 0, t]) == 0:
-                continue
-            else:
-                _ITM_check = _intrinsic_val[:, t] > 0
+            # Carry every path's cashflow back one step, whether or not any path is in the money.
+            # (1.0.3 skipped this when no path was ITM, which zeroed the value at all earlier dates.)
+            _option_value[:, t] = _option_value[:, t + 1] * self.step_disc_fact
+            _ITM_check = _intrinsic_val[:, t] > 0
+            # The exercise decision needs enough ITM paths for a meaningful regression.
+            if np.count_nonzero(_ITM_check) > laguerre_poly_degree + 1:
                 _x_axis = _s_stimulated[_ITM_check, t]
-                _y_axis = _option_value[_ITM_check, t + 1] * self.step_disc_fact
-                _option_value[:, t] = _option_value[:, t + 1] * self.step_disc_fact
-                laguerre_poly_degree = 4
+                _y_axis = _option_value[_ITM_check, t]
                 laguerre_poly_4 = np.polynomial.laguerre.lagfit(_x_axis, _y_axis, laguerre_poly_degree)
                 _cond_pv = np.polynomial.laguerre.lagval(_x_axis, laguerre_poly_4)
 

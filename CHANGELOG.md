@@ -7,6 +7,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **American Monte Carlo (Longstaff-Schwartz)** no longer returns 0 when no simulated path is in the money at early exercise dates. The backward induction now carries every path's cashflow back at each step; the regression runs only when there are enough in-the-money paths. Example: American put S=55, K=40, vol 20%, r 6%, 1y, 50 steps: 0.0000 -> 0.1057 (European 0.1023). Prices that were already correct are unchanged.
 - **Missing market inputs are no longer silently replaced** (BSM, Black-76, GK, Binomial, Monte Carlo):
   - a missing or non-positive `spot0` / `fwd0` now raises `ValueError` (1.0.3 priced with a spot of 0.00001);
   - a missing `pricing_date` now raises `ValueError` with the expected format (1.0.3 raised an unclear `TypeError`);
