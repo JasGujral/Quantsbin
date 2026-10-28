@@ -3,11 +3,9 @@ developed by Quantsbin - Jun'18
 
 """
 
-import platform
 from collections import Counter
 from datetime import timedelta
 from functools import partial
-from multiprocessing import Pool
 
 from . import instruments as inst
 from .namesnmapper import ExpiryType, RiskParameter, UdlType, VanillaOptionType
@@ -21,11 +19,14 @@ VANILLA_OBJECT_MAPPER = {
 
 
 def p_map(func, parameter):
-    if platform.system() == "Windows":
-        return map(func, parameter)
-    else:
-        with Pool() as p:
-            return p.map(func, parameter)
+    """Apply ``func`` to each leg.
+
+    1.0.3 started a new multiprocessing Pool on every call. Each leg takes microseconds, so
+    process start-up dominated (21 ms vs 0.9 ms on Python 3.12, about 1 s on 3.14), and under the
+    spawn / forkserver start methods (macOS; Linux from Python 3.14) a script without an
+    ``if __name__ == "__main__":`` guard re-imported itself and crashed.
+    """
+    return list(map(func, parameter))
 
 
 class OptionStr1Udl:
