@@ -7,6 +7,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **P&L attribution for FX options**: `delta_rf_foreign` was passed to the cost-yield slot, so a foreign-rate move produced no P&L. It now moves the foreign rate. `pnl_attribution` also accepts `delta_cost_yield`.
 - **Numerical greeks** no longer return NaN when no bump sizes are given. This affected `risk_parameters()` for every Binomial and Monte Carlo engine and `risk_parameters_num()` without arguments. The documented default bumps (2% spot/vol/rate, 1 day) now apply.
 - **Numerical rho / vega with a zero base value** (e.g. `rf_rate=0`): a relative bump never moved it, giving NaN; a zero base is now bumped by the absolute amount.
 - **Option strategies** no longer start a multiprocessing pool on every call. This crashed scripts without an `if __name__ == "__main__":` guard on macOS and on Python 3.14+, and was about 25x slower on 3.12 (1,000x on 3.14). Values unchanged.
