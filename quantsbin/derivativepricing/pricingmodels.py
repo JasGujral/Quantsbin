@@ -431,7 +431,9 @@ class MonteCarloGBM(Model):
                 )
 
         _option_value[:, 0] = _option_value[:, 1] * self.step_disc_fact
-        return np.mean(_option_value[:, 0])
+        hold_value = np.mean(_option_value[:, 0])
+        # An American option can also be exercised today: never price below intrinsic value.
+        return max(hold_value, _intrinsic_val[0, 0])
 
     def valuation(self):
         if self.instrument.expiry_type == ExpiryType.EUROPEAN.value:

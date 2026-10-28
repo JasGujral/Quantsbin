@@ -28,6 +28,12 @@ def test_lsm_american_put_at_least_european():
     assert american > european
 
 
+def test_lsm_deep_in_the_money_put_is_worth_at_least_intrinsic():
+    # S=20, K=40: exercising today (20) beats holding; 1.0.3 returned 19.95.
+    price = _put("American", "MC_GBM", spot=20.0, no_of_path=20_000, no_of_steps=50, seed=7).valuation()
+    assert price >= 20.0 - 1e-12
+
+
 def test_lsm_out_of_the_money_put_is_positive():
     # The 1.0.3 bug: no path in the money at early steps -> value collapsed to 0.
     price = _put("American", "MC_GBM", spot=55.0, no_of_path=50_000, no_of_steps=50, seed=7).valuation()
