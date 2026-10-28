@@ -2,7 +2,8 @@
 
 Reference: Longstaff & Schwartz (2001), "Valuing American Options by Simulation: A Simple
 Least-Squares Approach", Review of Financial Studies 14(1), Table 1. American put, S=36, K=40,
-r=6%, sigma=20%, T=1 year: finite-difference value 4.478.
+r=6%, sigma=20%, T=1 year: finite-difference value 4.478. LSM with 50 exercise dates per year
+estimates that value; continuous exercise is worth slightly more (binomial limit ~4.4867).
 """
 
 import pytest

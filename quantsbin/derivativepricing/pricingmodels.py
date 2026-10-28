@@ -244,6 +244,11 @@ class BSMFramework(Model):
 class BSM(BSMFramework):
     """
     This is the Black Scholes Merton model. This model is for EqOption(Stocks)
+
+    Discrete dividends (div_list) use the escrowed model (Black 1975; Hull): the spot is reduced by
+    the present value of dividends paid before expiry and the volatility is applied unchanged (no
+    sigma* adjustment). The Monte Carlo model instead drops the spot on each ex-date, so the two
+    differ slightly when there are discrete dividends.
         Args required:
             instrument = Instrument parameters mapped from instrument module
             **market_kwargs = All the parameters from BSMFramework
@@ -334,6 +339,14 @@ class MonteCarloGBM(Model):
     """
     This is the Montecarlo Simulation(for Geometric Brownian motion) method for both European and
     American type of Options for all Asset classes. For American Type LSM method is used defined under this class
+
+    Discrete dividends (div_list) use the spot-drop model: each path falls by the dividend amount on
+    the ex-date (placed on the nearest time step) and is lognormal in between. BSM and Binomial use
+    the escrowed model instead.
+
+    Greeks are bump-and-reprice with the same seed. For American options the gamma is noisy and
+    biased, because the bumped runs fit slightly different exercise rules; use the Binomial model for
+    American gamma. Use valuation_with_error() to see the Monte Carlo standard error.
         Args required:
         instrument = Instrument parameters mapped from instrument module
         spot0 = (Float) e.g. 110.0
@@ -561,6 +574,10 @@ class MonteCarloGBM(Model):
 class BinomialModel(Model):
     """
     This is the generalised Binomial model used for valuation calculation for both European and American type
+
+    Cox-Ross-Rubinstein tree. Discrete dividends (div_list) use the escrowed approach of Hull and
+    Schroder (1988): the tree is built on S - PV(dividends) and the PV of the remaining dividends is
+    added back at each node; the volatility is applied unchanged (no sigma* adjustment).
         Args required:
         instrument = Instrument parameters mapped from instrument module
         spot0 = (Float) e.g. 110.0

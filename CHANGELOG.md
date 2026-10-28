@@ -32,6 +32,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - pre-commit hooks (ruff lint and format), Dependabot for Actions and uv dependencies.
 
 ### Changed
+- Docstrings state each model's discrete-dividend convention (BSM and Binomial: escrowed, Hull / Schroder 1988; Monte Carlo: spot drop on the ex-date) and that Monte Carlo gamma for American options is unreliable.
 - Tests moved from `test.py` (unittest) to `tests/` (pytest).
 - Code base formatted with ruff; wildcard import in `pricingmodels` replaced with explicit imports.
 - Packaging moved to `pyproject.toml` (hatchling) with a `uv.lock`; requires Python 3.12+.
