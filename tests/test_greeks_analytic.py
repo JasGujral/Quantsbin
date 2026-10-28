@@ -69,3 +69,40 @@ def test_bsm_phi_matches_finite_difference(option_type):
     phi = _engine(cls, spot_kw, market, option_type).risk_parameters()["phi"]
 
     assert phi == pytest.approx(expected, rel=1e-6)
+
+
+# ---- Garman-Kohlhagen carry greeks (bug 3) ------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("cls", "market", "rate_kw", "key"),
+    [
+        pytest.param(
+            qbdp.FXOption,
+            {"model": "GK", "spot0": SPOT, "rf_rate_local": 0.05, "rf_rate_foreign": 0.03},
+            "rf_rate_foreign",
+            "rho_foreign",
+            id="fx",
+        ),
+        pytest.param(
+            qbdp.ComOption,
+            {"model": "GK", "spot0": SPOT, "rf_rate": 0.05, "cnv_yield": 0.03, "cost_yield": 0.02},
+            "cnv_yield",
+            "rho_conv_yield",
+            id="commodity",
+        ),
+    ],
+)
+@pytest.mark.parametrize("option_type", ["Call", "Put"])
+def test_gk_carry_rho_present_and_matches_finite_difference(cls, market, rate_kw, key, option_type):
+    def engine(**overrides):
+        option = cls(option_type=option_type, strike=K, expiry_date=EXPIRY)
+        return option.engine(pricing_date=PRICING, volatility=VOL, **{**market, **overrides})
+
+    h = 1e-6
+    base = market[rate_kw]
+    expected = (engine(**{rate_kw: base + h}).valuation() - engine(**{rate_kw: base - h}).valuation()) / (2 * h)
+
+    greeks = engine().risk_parameters()
+    assert key in greeks
+    assert greeks[key] == pytest.approx(expected, rel=1e-6)

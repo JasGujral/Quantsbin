@@ -291,9 +291,9 @@ class GK(BSMFramework):
             RiskParameter.VEGA.value: self.vega(),
             RiskParameter.RHO.value: self.rho(),
         }
-        if self.instrument.undl == UdlType.FX:
+        if self.instrument.undl == UdlType.FX.value:
             risk_parameters.update({RiskParameter.RHO_FOREIGN.value: self.phi()})
-        elif self.instrument.undl == UdlType.COMMODITY:
+        elif self.instrument.undl == UdlType.COMMODITY.value:
             risk_parameters.update({RiskParameter.RHO_CONV.value: self.phi()})
         return risk_parameters
 

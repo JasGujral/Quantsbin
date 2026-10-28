@@ -7,6 +7,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **Garman-Kohlhagen greeks** now include `rho_foreign` (FX options) and `rho_conv_yield` (commodity options). They were never returned because the underlying type was compared with an Enum member instead of its value.
 - **P&L attribution for FX options**: `delta_rf_foreign` was passed to the cost-yield slot, so a foreign-rate move produced no P&L. It now moves the foreign rate. `pnl_attribution` also accepts `delta_cost_yield`.
 - **Numerical greeks** no longer return NaN when no bump sizes are given. This affected `risk_parameters()` for every Binomial and Monte Carlo engine and `risk_parameters_num()` without arguments. The documented default bumps (2% spot/vol/rate, 1 day) now apply.
 - **Numerical rho / vega with a zero base value** (e.g. `rf_rate=0`): a relative bump never moved it, giving NaN; a zero base is now bumped by the absolute amount.
