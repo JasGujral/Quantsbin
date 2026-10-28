@@ -340,9 +340,9 @@ class MonteCarloGBM(Model):
     This is the Montecarlo Simulation(for Geometric Brownian motion) method for both European and
     American type of Options for all Asset classes. For American Type LSM method is used defined under this class
 
-    Discrete dividends (div_list) use the spot-drop model: each path falls by the dividend amount on
-    the ex-date (placed on the nearest time step) and is lognormal in between. BSM and Binomial use
-    the escrowed model instead.
+    Discrete dividends (div_list) use the spot-drop model: each path falls by the dividend amount at
+    the first time step after the ex-date (step int(t_ex / dt) + 1, so up to one step late) and is
+    lognormal in between. BSM and Binomial use the escrowed model instead.
 
     Greeks are bump-and-reprice with the same seed. For American options the gamma is noisy and
     biased, because the bumped runs fit slightly different exercise rules; use the Binomial model for
